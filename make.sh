@@ -1,13 +1,21 @@
 #!/bin/bash
 
-[ -d ./build ] || mkdir ./build
+[ -e ./build ] && rm -rf build
+
+mkdir build build/kernel build/boot
 
 set -xe
 
-nasm -I ./include -o ./build/mbr.bin ./boot/mbr.S
+nasm -I ./boot/include -o ./build/boot/mbr.bin ./boot/mbr.S
 
-dd if=./build/mbr.bin of=./hd60M.img bs=512 count=1 conv=notrunc
+dd if=./build/boot/mbr.bin of=./hd60M.img bs=512 count=1 conv=notrunc
 
-nasm -I ./include -o ./build/loader.bin ./boot/loader.S
+nasm -I ./boot/include -o ./build/boot/loader.bin ./boot/loader.S
 
-dd if=./build/loader.bin of=./hd60M.img bs=512 count=4 seek=2 conv=notrunc
+dd if=./build/boot/loader.bin of=./hd60M.img bs=512 count=4 seek=2 conv=notrunc
+
+gcc -m32 -c -o ./build/kernel/main.o kernel/main.c
+
+ld -m elf_i386 ./build/kernel/main.o -Ttext 0xc0001500 -e main -o ./build/kernel/kernel.bin
+
+dd if=./build/kernel/kernel.bin of=./hd60M.img bs=512 count=200 seek=9 conv=notrunc
