@@ -14,7 +14,10 @@ nasm -I ./boot/include -o ./build/boot/loader.bin ./boot/loader.S
 
 dd if=./build/boot/loader.bin of=./hd60M.img bs=512 count=4 seek=2 conv=notrunc
 
-gcc -m32 -c -o ./build/kernel/main.o kernel/main.c
+gcc -m32 -fno-pic -c -o ./build/kernel/main.o kernel/main.c
+# gcc -m32 -c -O1 -o ./build/kernel/main.o kernel/main.c
+
+objcopy --remove-section .note.gnu.property ./build/kernel/main.o
 
 ld -m elf_i386 ./build/kernel/main.o -Ttext 0xc0001500 -e main -o ./build/kernel/kernel.bin
 
