@@ -26,5 +26,7 @@ void main(void) {
     {
         put_char('x');
     }
+    put_char('\n');
+    put_str("I'm a kernel\n");
     while(1);
 }
