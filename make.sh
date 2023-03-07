@@ -18,8 +18,11 @@ dd if=./build/boot/loader.bin of=./hd60M.img bs=512 count=4 seek=2 conv=notrunc
 
 nasm -f elf32 -o ./build/lib/kernel/print.o ./src/lib/kernel/print.S
 
-# gcc -m32 -fno-pic -I./lib -c -o ./build/kernel/main.o ./src/kernel/main.c
-gcc -m32 -fno-pic -I ./include -c -o ./build/kernel/main.o ./src/kernel/main.c
+#CFLAGS = -m32 -Wall $(LIB) -c -fno-builtin -W -Wstrict-prototypes \
+# -Wmissing-prototypes  -fno-stack-protector
+
+# gcc -m32 -fno-pic -I ./include -c -o ./build/kernel/main.o ./src/kernel/main.c
+gcc -m32 -Wall -c -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector -I ./include -o ./build/kernel/main.o ./src/kernel/main.c
 # gcc -m32 -c -O1 -o ./build/kernel/main.o kernel/main.c
 
 objcopy --remove-section .note.gnu.property ./build/kernel/main.o
