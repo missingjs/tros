@@ -2,11 +2,13 @@ ENTRY_POINT := 0xc0001500
 PRIMARY_HD := hd60M.img
 
 C_SRCS := $(shell find ./src -type f -name '*.c')
+C_SRCS := $(filter-out ./src/device/timer.c, $(C_SRCS))
+C_SRCS += ./src/device/timer.c
 C_OBJS := $(C_SRCS:.c=.o)
 C_OBJS := $(C_OBJS:./src/%=./build/%)
 C_DEPS := $(C_OBJS:.o=.d)
 CC := gcc
-CFLAGS := -m32 -Wall -I./include -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector 
+CFLAGS := -m32 -Wall -I./include -fno-pic -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector 
  
 AS_SRCS := $(shell find ./src -type f -name '*.S')
 AS_SRCS := $(filter-out ./src/boot/mbr.S ./src/boot/loader.S, $(AS_SRCS))
@@ -18,7 +20,7 @@ ASFLAGS := -f elf32
 ASBINLIB := -I ./include
 
 LD := ld
-LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main
+LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main --strip-all
 
 MBR_BIN := ./build/boot/mbr.bin
 LOADER_BIN := ./build/boot/loader.bin
@@ -53,7 +55,7 @@ mkdirs:
 sinclude $(C_DEPS)
 sinclude $(AS_DEPS)
 
-$(KERNEL_BIN) : $(C_OBJS) $(AS_OBJS)
+$(KERNEL_BIN) : $(AS_OBJS) $(C_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^
 
 $(MBR_BIN) : src/boot/mbr.S include/boot/boot.inc
