@@ -211,7 +211,8 @@ enter_kernel:
    mov byte [gs:496], ';'     ;视频段段基址已经被更新
    call kernel_init
    mov esp, 0xc009f000
-   jmp KERNEL_ENTRY_POINT                 ; 用地址0x1500访问测试，结果ok
+   ;jmp KERNEL_ENTRY_POINT                 ; 用地址0x1500访问测试，结果ok, but it need to put main.o at the first when linking
+   jmp eax  ; so, we use kernel_init's return value
 
 ;-----------------   将kernel.bin中的segment拷贝到编译的地址   -----------
 kernel_init:
@@ -222,6 +223,8 @@ kernel_init:
 
    mov dx, [KERNEL_BIN_BASE_ADDR + 42]	  ; 偏移文件42字节处的属性是e_phentsize,表示program header大小
    mov ebx, [KERNEL_BIN_BASE_ADDR + 28]   ; 偏移文件开始部分28字节的地方是e_phoff,表示第1 个program header在文件中的偏移量
+   mov eax, [KERNEL_BIN_BASE_ADDR + 24]   ; put entry point address in eax
+   push eax ; backup entry point address
 					  ; 其实该值是0x34,不过还是谨慎一点，这里来读取实际值
    add ebx, KERNEL_BIN_BASE_ADDR
    mov cx, [KERNEL_BIN_BASE_ADDR + 44]    ; 偏移文件开始部分44字节的地方是e_phnum,表示有几个program header
@@ -240,6 +243,7 @@ kernel_init:
 .PTNULL:
    add ebx, edx				  ; edx为program header大小,即e_phentsize,在此ebx指向下一个program header 
    loop .each_segment
+   pop eax ; pop entry point into eax, as return value
    ret
 
 ;----------  逐字节拷贝 mem_cpy(dst,src,size) ------------
