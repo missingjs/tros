@@ -6,8 +6,7 @@
 #include "kernel/interrupt.h"
 #include "lib/kernel/print.h"
 #include "kernel/memory.h"
-
-#define PG_SIZE 4096
+#include "userprog/process.h"
 
 struct task_struct* main_thread;    // 主线程PCB
 struct list thread_ready_list;	    // 就绪队列
@@ -18,7 +17,7 @@ extern void switch_to(struct task_struct* cur, struct task_struct* next);
 
 /* 获取当前线程pcb指针 */
 struct task_struct* running_thread() {
-   uint32_t esp; 
+   uint32_t esp;
    asm ("mov %%esp, %0" : "=g" (esp));
   /* 取esp整数部分即pcb起始地址 */
    return (struct task_struct*)(esp & 0xfffff000);
@@ -28,7 +27,7 @@ struct task_struct* running_thread() {
 static void kernel_thread(thread_func* function, void* func_arg) {
 /* 执行function前要开中断,避免后面的时钟中断被屏蔽,而无法调度其它线程 */
    intr_enable();
-   function(func_arg); 
+   function(func_arg);
 }
 
 /* 初始化线程栈thread_stack,将待执行的函数和参数放到thread_stack中相应的位置 */
@@ -105,13 +104,13 @@ void schedule() {
 
    ASSERT(intr_get_status() == INTR_OFF);
 
-   struct task_struct* cur = running_thread(); 
+   struct task_struct* cur = running_thread();
    if (cur->status == TASK_RUNNING) { // 若此线程只是cpu时间片到了,将其加入到就绪队列尾
       ASSERT(!elem_find(&thread_ready_list, &cur->general_tag));
       list_append(&thread_ready_list, &cur->general_tag);
       cur->ticks = cur->priority;     // 重新将当前线程的ticks再重置为其priority;
       cur->status = TASK_READY;
-   } else { 
+   } else {
       /* 若此线程需要某事件发生后才能继续上cpu运行,
       不需要将其加入队列,因为当前线程不在就绪队列中。*/
    }
@@ -119,9 +118,13 @@ void schedule() {
    ASSERT(!list_empty(&thread_ready_list));
    thread_tag = NULL;	  // thread_tag清空
 /* 将thread_ready_list队列中的第一个就绪线程弹出,准备将其调度上cpu. */
-   thread_tag = list_pop(&thread_ready_list);   
+   thread_tag = list_pop(&thread_ready_list);
    struct task_struct* next = elem2entry(struct task_struct, general_tag, thread_tag);
    next->status = TASK_RUNNING;
+
+   /* 击活任务页表等 */
+   process_activate(next);
+
    switch_to(cur, next);
 }
 
