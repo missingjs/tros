@@ -177,3 +177,4 @@ void thread_init(void) {
    make_main_thread();
    put_str("thread_init done\n");
 }
+
