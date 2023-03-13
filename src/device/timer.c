@@ -17,10 +17,10 @@
 uint32_t ticks;          // ticks是内核自中断开启以来总共的嘀嗒数
 
 /* 把操作的计数器counter_no、读写锁属性rwl、计数器模式counter_mode写入模式控制寄存器并赋予初始值counter_value */
-static void frequency_set(uint8_t counter_port, 
-			  uint8_t counter_no, 
-			  uint8_t rwl, 
-			  uint8_t counter_mode, 
+static void frequency_set(uint8_t counter_port, \
+			  uint8_t counter_no, \
+			  uint8_t rwl, \
+			  uint8_t counter_mode, \
 			  uint16_t counter_value) {
 /* 往控制字寄存器端口0x43中写入控制字 */
    outb(PIT_CONTROL_PORT, (uint8_t)(counter_no << 6 | rwl << 4 | counter_mode << 1));

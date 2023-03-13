@@ -25,8 +25,9 @@ while read filename; do
         echo "$filename not found at origin directory: $origin_path"
         exit 2
     fi
-    cat $filename | grep -v '#include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > a
-    cat $origin_path | grep -v '#include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > b
+    [ $filename == './src/boot/mbr.S' ] && continue
+    cat $filename | grep -v '[#%]include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > a
+    cat $origin_path | grep -v '[#%]include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > b
     diff a b || { echo "********" $filename : $origin_path "********"; }
 done < <(find ./src -name "*.c" -o -name "*.S")
 
