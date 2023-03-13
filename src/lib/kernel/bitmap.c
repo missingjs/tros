@@ -1,9 +1,9 @@
-#include "kernel/bitmap.h"
-#include "lib/stdint.h"
-#include "lib/string.h"
-#include "lib/kernel/print.h"
 #include "kernel/interrupt.h"
 #include "kernel/debug.h"
+#include "lib/kernel/bitmap.h"
+#include "lib/kernel/print.h"
+#include "lib/stdint.h"
+#include "lib/string.h"
 
 /* 将位图btmp初始化 */
 void bitmap_init(struct bitmap* btmp) {

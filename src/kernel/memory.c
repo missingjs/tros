@@ -1,7 +1,7 @@
-#include "kernel/bitmap.h"
 #include "kernel/debug.h"
 #include "kernel/global.h"
 #include "kernel/memory.h"
+#include "lib/kernel/bitmap.h"
 #include "lib/kernel/print.h"
 #include "lib/stdint.h"
 #include "lib/string.h"

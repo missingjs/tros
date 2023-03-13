@@ -1,7 +1,7 @@
 #ifndef __THREAD_THREAD_H
 #define __THREAD_THREAD_H
-#include "kernel/bitmap.h"
 #include "kernel/memory.h"
+#include "lib/kernel/bitmap.h"
 #include "lib/kernel/list.h"
 #include "lib/stdint.h"
 
