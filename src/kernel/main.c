@@ -17,7 +17,7 @@ int main(void) {
    put_str("I am kernel\n");
    init_all();
 
-//   process_execute(u_prog_a, "u_prog_a");
+   process_execute(u_prog_a, "u_prog_a");
    process_execute(u_prog_b, "u_prog_b");
 
    console_put_str(" I am main, my pid:0x");
@@ -58,8 +58,6 @@ void u_prog_a(void) {
 /* 测试用户进程 */
 void u_prog_b(void) {
    char* name = "prog_b";
-   printf("I'm user process b\n");
-   printf("I'm user process b\n");
-//   printf(" I am %s, my pid:%d%c", name, getpid(), '\n');
+   printf(" I am %s, my pid:%d%c", name, getpid(), '\n');
    while(1);
 }
