@@ -1,5 +1,6 @@
 ENTRY_POINT := 0xc0001500
 PRIMARY_HD := hd60M.img
+SECONDARY_HD := hd80M.img
 
 C_SRCS := $(shell find ./src -type f -name '*.c')
 C_OBJS := $(C_SRCS:.c=.o)
@@ -75,7 +76,9 @@ clean:
 
 create-hd:
 	@. ./env.sh || exit; bximage -hd -mode="flat" -size=60 -q $(PRIMARY_HD)
+	@. ./env.sh || exit; bximage -hd -mode="flat" -size=80 -q $(SECONDARY_HD)
+	@printf "n\np\n1\n\n+25M\nn\ne\n2\n\n\nn\n\n+25M\nn\n\n\nw\n" | fdisk $(SECONDARY_HD)
 
 remove-hd:
-	rm -f $(PRIMARY_HD)
+	rm -f $(PRIMARY_HD) $(SECONDARY_HD)
 
