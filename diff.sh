@@ -9,8 +9,8 @@ while read filename; do
     real_path=${filename#./include/}
     origin_path=$origin_dir/$real_path
     if [ ! -e $origin_path ]; then
-        echo "$filename not found at origin directory: $origin_path"
-        exit 2
+        echo "++++ $filename not found at origin directory: $origin_path ++++"
+        continue
     fi
     cat $filename | grep -v '#include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > a
     cat $origin_path | grep -v '#include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > b
@@ -22,8 +22,8 @@ while read filename; do
     real_path=${filename#./src/}
     origin_path=$origin_dir/$real_path
     if [ ! -e $origin_path ]; then
-        echo "$filename not found at origin directory: $origin_path"
-        exit 2
+        echo "++++ $filename not found at origin directory: $origin_path ++++"
+        continue
     fi
     [ $filename == './src/boot/mbr.S' ] && continue
     cat $filename | grep -v '[#%]include' | grep -vP '^\s*$' | sed 's/\r//g' | sed 's/\s*$//g' | sed 's/^\s*//g' > a
