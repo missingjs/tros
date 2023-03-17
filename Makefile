@@ -7,7 +7,7 @@ C_OBJS := $(C_SRCS:.c=.o)
 C_OBJS := $(C_OBJS:./src/%=./build/%)
 C_DEPS := $(C_OBJS:.o=.d)
 CC := gcc
-CFLAGS := -m32 -Wall -I./include -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector 
+CFLAGS := -m32 -Wall -I ./include -I ./include/lib -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -fno-stack-protector 
  
 AS_SRCS := $(shell find ./src -type f -name '*.S')
 AS_SRCS := $(filter-out ./src/boot/mbr.S ./src/boot/loader.S, $(AS_SRCS))
