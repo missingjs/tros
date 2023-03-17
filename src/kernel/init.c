@@ -1,10 +1,11 @@
 #include "device/console.h"
+#include "device/ide.h"
 #include "device/keyboard.h"
 #include "device/timer.h"
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
-#include "lib/kernel/print.h"
+#include "kernel/print.h"
 #include "thread/thread.h"
 #include "userprog/syscall-init.h"
 #include "userprog/tss.h"
@@ -20,4 +21,6 @@ void init_all() {
    keyboard_init();  // 键盘初始化
    tss_init();       // tss初始化
    syscall_init();   // 初始化系统调用
+   intr_enable();    // 后面的ide_init需要打开中断
+   ide_init();	     // 初始化硬盘
 }
