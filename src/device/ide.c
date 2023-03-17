@@ -152,7 +152,7 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   //
    ASSERT(sec_cnt > 0);
    lock_acquire (&hd->my_channel->lock);
 
-/* 1 先选择操作的硬盘 */
+/* 1 先选择操作的硬盘 */
    select_disk(hd);
 
    uint32_t secs_op;		 // 每次操作的扇区数
@@ -197,7 +197,7 @@ void ide_write(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {
    ASSERT(sec_cnt > 0);
    lock_acquire (&hd->my_channel->lock);
 
-/* 1 先选择操作的硬盘 */
+/* 1 先选择操作的硬盘 */
    select_disk(hd);
 
    uint32_t secs_op;		 // 每次操作的扇区数
@@ -348,7 +348,6 @@ void intr_hd_handler(uint8_t irq_no) {
 void ide_init() {
    printk("ide_init start\n");
    uint8_t hd_cnt = *((uint8_t*)(0x475));	      // 获取硬盘的数量
-   printk("   ide_init hd_cnt:%d\n",hd_cnt);
    ASSERT(hd_cnt > 0);
    list_init(&partition_list);
    channel_cnt = DIV_ROUND_UP(hd_cnt, 2);	   // 一个ide通道上有两个硬盘,根据硬盘数量反推有几个ide通道
