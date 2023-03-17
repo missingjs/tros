@@ -11,7 +11,7 @@
 
 /* 将整型转换成字符(integer to ascii) */
 static void itoa(uint32_t value, char** buf_ptr_addr, uint8_t base) {
-   uint32_t m = value % base;	    // 求模,最先掉下来的是最低位   
+   uint32_t m = value % base;	    // 求模,最先掉下来的是最低位
    uint32_t i = value / base;	    // 取整
    if (i) {			    // 如果倍数不为0则递归调用。
       itoa(i, buf_ptr_addr, base);
@@ -57,13 +57,13 @@ uint32_t vsprintf(char* str, const char* format, va_list ap) {
 	       arg_int = 0 - arg_int;
 	       *buf_ptr++ = '-';
 	    }
-	    itoa(arg_int, &buf_ptr, 10); 
+	    itoa(arg_int, &buf_ptr, 10);
 	    index_char = *(++index_ptr);
 	    break;
 
 	 case 'x':
 	    arg_int = va_arg(ap, int);
-	    itoa(arg_int, &buf_ptr, 16); 
+	    itoa(arg_int, &buf_ptr, 16);
 	    index_char = *(++index_ptr); // 跳过格式字符并更新index_char
 	    break;
       }
@@ -88,5 +88,5 @@ uint32_t printf(const char* format, ...) {
    char buf[1024] = {0};	       // 用于存储拼接后的字符串
    vsprintf(buf, format, args);
    va_end(args);
-   return write(buf); 
+   return write(1, buf, strlen(buf));
 }

@@ -46,7 +46,7 @@ void inode_sync(struct partition* part, struct inode* inode, void* io_buf) {	 //
    inode_locate(part, inode_no, &inode_pos);	       // inode位置信息会存入inode_pos
    ASSERT(inode_pos.sec_lba <= (part->start_lba + part->sec_cnt));
    
-   /* 硬盘中的inode中的成员inode_tag和i_open_cnts是不需要的,
+   /* 硬盘中的inode中的成员inode_tag和i_open_cnts是不需要的,
     * 它们只在内存中记录链表位置和被多少进程共享 */
    struct inode pure_inode;
    memcpy(&pure_inode, inode, sizeof(struct inode));
