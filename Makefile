@@ -77,7 +77,8 @@ clean:
 create-hd:
 	@. ./env.sh || exit; bximage -hd -mode="flat" -size=60 -q $(PRIMARY_HD)
 	@. ./env.sh || exit; bximage -hd -mode="flat" -size=80 -q $(SECONDARY_HD)
-	@printf "n\np\n1\n\n+25M\nn\ne\n2\n\n\nn\n\n+25M\nn\n\n\nw\n" | fdisk $(SECONDARY_HD)
+	@cat sec_hd.json | python3 tools/partition.py | fdisk $(SECONDARY_HD)
+# 	@printf "n\np\n1\n\n+25M\nn\ne\n2\n\n\nn\n\n+25M\nn\n\n\nw\n" | fdisk $(SECONDARY_HD)
 
 remove-hd:
 	rm -f $(PRIMARY_HD) $(SECONDARY_HD)

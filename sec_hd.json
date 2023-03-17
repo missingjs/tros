@@ -1,0 +1,26 @@
+{
+    "partitions": [
+        {
+            "type": "primary",
+            "number": 1,
+            "start": "",
+            "end": "+25M"
+        },
+        {
+            "type": "extend",
+            "number": 4,
+            "start": "",
+            "end": "",
+            "logics": [
+                {
+                    "start": "",
+                    "end": "+25M"
+                },
+                {
+                    "start": "",
+                    "end": ""
+                }
+            ]
+        }
+    ]
+}
