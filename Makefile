@@ -47,7 +47,7 @@ mkdirs:
 	@set -e; \
 	mkdir -p $$(dirname ./build/$*); \
 	rm -f $@; \
-	python3 asmdep.py -I ./include -MT ./build/$*.o $< > $@.$$$$; \
+	python3 tools/asmdep.py -I ./include -MT ./build/$*.o $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	echo './build/$*.o: ; $(AS) $(ASFLAGS) -o ./build/$*.o $<' >> $@; \
 	rm -f $@.$$$$
