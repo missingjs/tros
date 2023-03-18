@@ -208,6 +208,11 @@ kernel_init:
    cmp byte [ebx + 0], PT_NULL		  ; 若p_type等于 PT_NULL,说明此program header未使用。
    je .PTNULL
 
+   push dword [ebx + 20]     ; push p_memsz
+   push dword [ebx + 8]      ; push p_vaddr
+   call mem_clear
+   add esp,8
+
    ;为函数memcpy压入参数,参数是从右往左依然压入.函数原型类似于 memcpy(dst,src,size)
    push dword [ebx + 16]		  ; program header中偏移16字节的地方是p_filesz,压入函数memcpy的第三个参数:size
    mov eax, [ebx + 4]			  ; 距程序头偏移量为4字节的位置是p_offset
@@ -238,6 +243,23 @@ mem_cpy:
 
    ;恢复环境
    pop ecx		
+   pop ebp
+   ret
+
+mem_clear:
+   push ebp
+   mov ebp, esp
+   push ecx
+   mov edi, [ebp + 8]     ; addr
+   mov ecx, [ebp + 12]    ; size
+   jecxz .mem_clear_end
+.clear_byte:
+   mov byte [edi], 0
+   inc edi
+   loop .clear_byte
+
+.mem_clear_end
+   pop ecx
    pop ebp
    ret
 
