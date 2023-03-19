@@ -45,8 +45,8 @@ void inode_sync(struct partition* part, struct inode* inode, void* io_buf) {	 //
    struct inode_position inode_pos;
    inode_locate(part, inode_no, &inode_pos);	       // inode位置信息会存入inode_pos
    ASSERT(inode_pos.sec_lba <= (part->start_lba + part->sec_cnt));
-
-   /* 硬盘中的inode中的成员inode_tag和i_open_cnts是不需要的,
+   
+   /* 硬盘中的inode中的成员inode_tag和i_open_cnts是不需要的,
     * 它们只在内存中记录链表位置和被多少进程共享 */
    struct inode pure_inode;
    memcpy(&pure_inode, inode, sizeof(struct inode));
@@ -63,7 +63,7 @@ void inode_sync(struct partition* part, struct inode* inode, void* io_buf) {	 //
 
    /* 开始将待写入的inode拼入到这2个扇区中的相应位置 */
       memcpy((inode_buf + inode_pos.off_size), &pure_inode, sizeof(struct inode));
-
+   
    /* 将拼接好的数据再写入磁盘 */
       ide_write(part->my_disk, inode_pos.sec_lba, inode_buf, 2);
    } else {			    // 若只是一个扇区
@@ -149,7 +149,7 @@ void inode_delete(struct partition* part, uint32_t inode_no, void* io_buf) {
    struct inode_position inode_pos;
    inode_locate(part, inode_no, &inode_pos);     // inode位置信息会存入inode_pos
    ASSERT(inode_pos.sec_lba <= (part->start_lba + part->sec_cnt));
-
+   
    char* inode_buf = (char*)io_buf;
    if (inode_pos.two_sec) {   // inode跨扇区,读入2个扇区
       /* 将原硬盘上的内容先读出来 */
@@ -195,7 +195,7 @@ void inode_release(struct partition* part, uint32_t inode_no) {
       bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
       bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
    }
-
+   
    /* c inode所有的块地址已经收集到all_blocks中,下面逐个回收 */
    block_idx = 0;
    while (block_idx < block_cnt) {
@@ -206,11 +206,11 @@ void inode_release(struct partition* part, uint32_t inode_no) {
 	 bitmap_set(&part->block_bitmap, block_bitmap_idx, 0);
 	 bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
       }
-      block_idx++;
+      block_idx++; 
    }
 
 /*2 回收该inode所占用的inode */
-   bitmap_set(&part->inode_bitmap, inode_no, 0);
+   bitmap_set(&part->inode_bitmap, inode_no, 0);  
    bitmap_sync(cur_part, inode_no, INODE_BITMAP);
 
    /******     以下inode_delete是调试用的    ******
@@ -221,7 +221,7 @@ void inode_release(struct partition* part, uint32_t inode_no) {
    inode_delete(part, inode_no, io_buf);
    sys_free(io_buf);
    /***********************************************/
-
+    
    inode_close(inode_to_del);
 }
 
