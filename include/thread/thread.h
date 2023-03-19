@@ -1,9 +1,9 @@
 #ifndef __THREAD_THREAD_H
 #define __THREAD_THREAD_H
+#include "kernel/bitmap.h"
+#include "kernel/list.h"
 #include "kernel/memory.h"
-#include "lib/kernel/bitmap.h"
-#include "lib/kernel/list.h"
-#include "lib/stdint.h"
+#include "stdint.h"
 
 #define MAX_FILES_OPEN_PER_PROC 8
 /* 自定义通用函数类型,它将在很多线程函数中做为形参类型 */
@@ -94,6 +94,7 @@ struct task_struct {
    struct mem_block_desc u_block_desc[DESC_CNT];   // 用户进程内存块描述符
    int32_t fd_table[MAX_FILES_OPEN_PER_PROC];	// 已打开文件数组
    uint32_t cwd_inode_nr;	 // 进程所在的工作目录的inode编号
+   int16_t parent_pid;		 // 父进程pid
    uint32_t stack_magic;	 // 用这串数字做栈的边界标记,用于检测栈的溢出
 };
 
@@ -109,4 +110,5 @@ void thread_init(void);
 void thread_block(enum task_status stat);
 void thread_unblock(struct task_struct* pthread);
 void thread_yield(void);
+pid_t fork_pid(void);
 #endif
