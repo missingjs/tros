@@ -16,7 +16,7 @@ proj_dir=$(realpath $self_dir/..)
 
 cd $self_dir
 
-BIN="prog_arg"
+BIN="cat"
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes \
       -Wmissing-prototypes -Wsystem-headers"
 OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o start.o"
@@ -32,7 +32,7 @@ SEC_CNT=$(ls -l $BIN|awk '{printf("%d", ($5+511)/512)}')
 if [[ -f $BIN ]];then
     set -x
    dd if=./$DD_IN of=$DD_OUT bs=512 \
-   count=$SEC_CNT seek=400 conv=notrunc
+   count=$SEC_CNT seek=300 conv=notrunc
 fi
 
 ##########   以上核心就是下面这三条命令   ##########
