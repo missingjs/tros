@@ -16,22 +16,23 @@ proj_dir=$(realpath $self_dir/..)
 
 cd $self_dir
 
-BIN="prog_no_arg"
+BIN="prog_arg"
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes \
       -Wmissing-prototypes -Wsystem-headers"
-# LIB="../lib/"
-# OBJS="../build/lib/string.o ../build/lib/stdio.o ../build/lib/user/assert.o ../build/kernel/debug.o ../build/lib/kernel/print.o ../build/kernel/interrupt.o ../build/lib/user/syscall.o ../build/kernel/kernel.o ../build/userprog/syscall-init.o"
-OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o"
+OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o start.o"
 DD_IN=$BIN
 DD_OUT="../hd60M.img" 
 
+nasm -f elf32 ./start.S -o ./start.o
+ar rcs simple_crt.a $OBJS start.o
 gcc $CFLAGS -I $proj_dir/include -I $proj_dir/include/lib -o ${BIN}.o ${BIN}.c
-ld -m elf_i386 -e main ${BIN}.o $OBJS -o $BIN
+ld -m elf_i386 ${BIN}.o simple_crt.a -o $BIN
 SEC_CNT=$(ls -l $BIN|awk '{printf("%d", ($5+511)/512)}')
 
 if [[ -f $BIN ]];then
+    set -x
    dd if=./$DD_IN of=$DD_OUT bs=512 \
-   count=$SEC_CNT seek=300 conv=notrunc
+   count=$SEC_CNT seek=400 conv=notrunc
 fi
 
 ##########   以上核心就是下面这三条命令   ##########
