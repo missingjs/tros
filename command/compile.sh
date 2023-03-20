@@ -20,8 +20,8 @@ BIN="prog_no_arg"
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes \
       -Wmissing-prototypes -Wsystem-headers"
 # LIB="../lib/"
-OBJS="../build/lib/string.o \
-      ../build/lib/stdio.o ../build/lib/user/assert.o ../build/kernel/debug.o ../build/lib/kernel/print.o ../build/kernel/interrupt.o ../build/lib/user/syscall.o ../build/kernel/kernel.o ../build/userprog/syscall-init.o"
+# OBJS="../build/lib/string.o ../build/lib/stdio.o ../build/lib/user/assert.o ../build/kernel/debug.o ../build/lib/kernel/print.o ../build/kernel/interrupt.o ../build/lib/user/syscall.o ../build/kernel/kernel.o ../build/userprog/syscall-init.o"
+OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o"
 DD_IN=$BIN
 DD_OUT="../hd60M.img" 
 
