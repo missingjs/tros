@@ -17,7 +17,7 @@ proj_dir=$(realpath $self_dir/..)
 
 cd $self_dir
 
-BIN="prog_pipe"
+BIN="cat"
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes \
       -Wmissing-prototypes -Wsystem-headers"
 OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o start.o"

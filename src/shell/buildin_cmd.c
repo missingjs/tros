@@ -11,10 +11,10 @@
 /* 将路径old_abs_path中的..和.转换为实际路径后存入new_abs_path */
 static void wash_path(char* old_abs_path, char* new_abs_path) {
    assert(old_abs_path[0] == '/');
-   char name[MAX_FILE_NAME_LEN] = {0};    
+   char name[MAX_FILE_NAME_LEN] = {0};
    char* sub_path = old_abs_path;
    sub_path = path_parse(sub_path, name);
-   if (name[0] == 0) { // 若只键入了"/",直接将"/"存入new_abs_path后返回 
+   if (name[0] == 0) { // 若只键入了"/",直接将"/"存入new_abs_path后返回
       new_abs_path[0] = '/';
       new_abs_path[1] = 0;
       return;
@@ -72,7 +72,7 @@ void buildin_pwd(uint32_t argc, char** argv UNUSED) {
       return;
    } else {
       if (NULL != getcwd(final_path, MAX_PATH_LEN)) {
-	 printf("%s\n", final_path); 
+	 printf("%s\n", final_path);
       } else {
 	 printf("pwd: get current work directory failed.\n");
       }
@@ -114,7 +114,7 @@ void buildin_ls(uint32_t argc, char** argv) {
 	 if (!strcmp("-l", argv[arg_idx])) {         // 如果是参数-l
 	    long_info = true;
 	 } else if (!strcmp("-h", argv[arg_idx])) {   // 参数-h
-	    printf("usage: -l list all infomation about the file.\n-h for help\nlist all files in the current dirctory if no option\n"); 
+	    printf("usage: -l list all infomation about the file.\n-h for help\nlist all files in the current dirctory if no option\n");
 	    return;
 	 } else {	// 只支持-h -l两个选项
 	    printf("ls: invalid option %s\nTry `ls -h' for more information.\n", argv[arg_idx]);
@@ -130,8 +130,8 @@ void buildin_ls(uint32_t argc, char** argv) {
 	 }
       }
       arg_idx++;
-   } 
-   
+   }
+
    if (pathname == NULL) {	 // 若只输入了ls 或 ls -l,没有输入操作路径,默认以当前路径的绝对路径为参数.
       if (NULL != getcwd(final_path, MAX_PATH_LEN)) {
 	 pathname = final_path;
@@ -167,7 +167,7 @@ void buildin_ls(uint32_t argc, char** argv) {
 	    ftype = 'd';
 	    if (dir_e->f_type == FT_REGULAR) {
 	       ftype = '-';
-	    } 
+	    }
 	    sub_pathname[pathname_len] = 0;
 	    strcat(sub_pathname, dir_e->filename);
 	    memset(&file_stat, 0, sizeof(struct stat));
@@ -188,7 +188,7 @@ void buildin_ls(uint32_t argc, char** argv) {
       if (long_info) {
 	 printf("-  %d  %d  %s\n", file_stat.st_ino, file_stat.st_size, pathname);
       } else {
-	 printf("%s\n", pathname);  
+	 printf("%s\n", pathname);
       }
    }
 }
@@ -263,8 +263,13 @@ int32_t buildin_rm(uint32_t argc, char** argv) {
 	 } else {
 	    printf("rm: delete %s failed.\n", argv[1]);
 	 }
-	    
+
       }
    }
    return ret;
+}
+
+/* 显示内建命令列表 */
+void buildin_help(uint32_t argc UNUSED, char** argv UNUSED) {
+   help();
 }
