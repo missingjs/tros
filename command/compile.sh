@@ -1,3 +1,4 @@
+#!/bin/bash
 ####  此脚本应该在command目录下执行
 
 # if [[ ! -d "../lib" || ! -d "../build" ]];then
@@ -16,7 +17,7 @@ proj_dir=$(realpath $self_dir/..)
 
 cd $self_dir
 
-BIN="cat"
+BIN="prog_pipe"
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes \
       -Wmissing-prototypes -Wsystem-headers"
 OBJS="../build/lib/stdio.o ../build/lib/string.o ../build/lib/user/assert.o ../build/lib/user/syscall.o start.o"

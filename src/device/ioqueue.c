@@ -12,7 +12,7 @@ void ioqueue_init(struct ioqueue* ioq) {
 
 /* 返回pos在缓冲区中的下一个位置值 */
 static int32_t next_pos(int32_t pos) {
-   return (pos + 1) % bufsize; 
+   return (pos + 1) % bufsize;
 }
 
 /* 判断队列是否已满 */
@@ -37,7 +37,7 @@ static void ioq_wait(struct task_struct** waiter) {
 /* 唤醒waiter */
 static void wakeup(struct task_struct** waiter) {
    ASSERT(*waiter != NULL);
-   thread_unblock(*waiter); 
+   thread_unblock(*waiter);
    *waiter = NULL;
 }
 
@@ -49,7 +49,7 @@ char ioq_getchar(struct ioqueue* ioq) {
  * 目的是将来生产者往缓冲区里装商品后,生产者知道唤醒哪个消费者,
  * 也就是唤醒当前线程自己*/
    while (ioq_empty(ioq)) {
-      lock_acquire(&ioq->lock);	 
+      lock_acquire(&ioq->lock);
       ioq_wait(&ioq->consumer);
       lock_release(&ioq->lock);
    }
@@ -61,7 +61,7 @@ char ioq_getchar(struct ioqueue* ioq) {
       wakeup(&ioq->producer);		  // 唤醒生产者
    }
 
-   return byte; 
+   return byte;
 }
 
 /* 生产者往ioq队列中写入一个字符byte */
@@ -82,4 +82,15 @@ void ioq_putchar(struct ioqueue* ioq, char byte) {
    if (ioq->consumer != NULL) {
       wakeup(&ioq->consumer);          // 唤醒消费者
    }
+}
+
+/* 返回环形缓冲区中的数据长度 */
+uint32_t ioq_length(struct ioqueue* ioq) {
+   uint32_t len = 0;
+   if (ioq->head >= ioq->tail) {
+      len = ioq->head - ioq->tail;
+   } else {
+      len = bufsize - (ioq->tail - ioq->head);
+   }
+   return len;
 }

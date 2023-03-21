@@ -12,6 +12,7 @@
 #include "kernel/list.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
+#include "shell/pipe.h"
 #include "stdint.h"
 #include "string.h"
 
@@ -36,10 +37,10 @@ static bool mount_partition(struct list_elem* pelem, int arg) {
 
       /* 读入超级块 */
       memset(sb_buf, 0, SECTOR_SIZE);
-      ide_read(hd, cur_part->start_lba + 1, sb_buf, 1);   
+      ide_read(hd, cur_part->start_lba + 1, sb_buf, 1);
 
       /* 把sb_buf中超级块的信息复制到分区的超级块sb中。*/
-      memcpy(cur_part->sb, sb_buf, sizeof(struct super_block)); 
+      memcpy(cur_part->sb, sb_buf, sizeof(struct super_block));
 
       /**********     将硬盘上的块位图读入到内存    ****************/
       cur_part->block_bitmap.bits = (uint8_t*)sys_malloc(sb_buf->block_bitmap_sects * SECTOR_SIZE);
@@ -48,7 +49,7 @@ static bool mount_partition(struct list_elem* pelem, int arg) {
       }
       cur_part->block_bitmap.btmp_bytes_len = sb_buf->block_bitmap_sects * SECTOR_SIZE;
       /* 从硬盘上读入块位图到分区的block_bitmap.bits */
-      ide_read(hd, sb_buf->block_bitmap_lba, cur_part->block_bitmap.bits, sb_buf->block_bitmap_sects);   
+      ide_read(hd, sb_buf->block_bitmap_lba, cur_part->block_bitmap.bits, sb_buf->block_bitmap_sects);
       /*************************************************************/
 
       /**********     将硬盘上的inode位图读入到内存    ************/
@@ -58,7 +59,7 @@ static bool mount_partition(struct list_elem* pelem, int arg) {
       }
       cur_part->inode_bitmap.btmp_bytes_len = sb_buf->inode_bitmap_sects * SECTOR_SIZE;
       /* 从硬盘上读入inode位图到分区的inode_bitmap.bits */
-      ide_read(hd, sb_buf->inode_bitmap_lba, cur_part->inode_bitmap.bits, sb_buf->inode_bitmap_sects);   
+      ide_read(hd, sb_buf->inode_bitmap_lba, cur_part->inode_bitmap.bits, sb_buf->inode_bitmap_sects);
       /*************************************************************/
 
       list_init(&cur_part->open_inodes);
@@ -74,21 +75,21 @@ static bool mount_partition(struct list_elem* pelem, int arg) {
 /* 格式化分区,也就是初始化分区的元信息,创建文件系统 */
 static void partition_format(struct partition* part) {
 /* 为方便实现,一个块大小是一扇区 */
-   uint32_t boot_sector_sects = 1;	  
+   uint32_t boot_sector_sects = 1;
    uint32_t super_block_sects = 1;
    uint32_t inode_bitmap_sects = DIV_ROUND_UP(MAX_FILES_PER_PART, BITS_PER_SECTOR);	   // I结点位图占用的扇区数.最多支持4096个文件
    uint32_t inode_table_sects = DIV_ROUND_UP(((sizeof(struct inode) * MAX_FILES_PER_PART)), SECTOR_SIZE);
    uint32_t used_sects = boot_sector_sects + super_block_sects + inode_bitmap_sects + inode_table_sects;
-   uint32_t free_sects = part->sec_cnt - used_sects;  
+   uint32_t free_sects = part->sec_cnt - used_sects;
 
 /************** 简单处理块位图占据的扇区数 ***************/
    uint32_t block_bitmap_sects;
    block_bitmap_sects = DIV_ROUND_UP(free_sects, BITS_PER_SECTOR);
    /* block_bitmap_bit_len是位图中位的长度,也是可用块的数量 */
-   uint32_t block_bitmap_bit_len = free_sects - block_bitmap_sects; 
-   block_bitmap_sects = DIV_ROUND_UP(block_bitmap_bit_len, BITS_PER_SECTOR); 
+   uint32_t block_bitmap_bit_len = free_sects - block_bitmap_sects;
+   block_bitmap_sects = DIV_ROUND_UP(block_bitmap_bit_len, BITS_PER_SECTOR);
 /*********************************************************/
-   
+
    /* 超级块初始化 */
    struct super_block sb;
    sb.magic = 0x19590318;
@@ -103,7 +104,7 @@ static void partition_format(struct partition* part) {
    sb.inode_bitmap_sects = inode_bitmap_sects;
 
    sb.inode_table_lba = sb.inode_bitmap_lba + sb.inode_bitmap_sects;
-   sb.inode_table_sects = inode_table_sects; 
+   sb.inode_table_sects = inode_table_sects;
 
    sb.data_start_lba = sb.inode_table_lba + sb.inode_table_sects;
    sb.root_inode_no = 0;
@@ -123,7 +124,7 @@ static void partition_format(struct partition* part) {
    uint32_t buf_size = (sb.block_bitmap_sects >= sb.inode_bitmap_sects ? sb.block_bitmap_sects : sb.inode_bitmap_sects);
    buf_size = (buf_size >= sb.inode_table_sects ? buf_size : sb.inode_table_sects) * SECTOR_SIZE;
    uint8_t* buf = (uint8_t*)sys_malloc(buf_size);	// 申请的内存由内存管理系统清0后返回
-   
+
 /**************************************
  * 2 将块位图初始化并写入sb.block_bitmap_lba *
  *************************************/
@@ -135,7 +136,7 @@ static void partition_format(struct partition* part) {
 
    /* 1 先将位图最后一字节到其所在的扇区的结束全置为1,即超出实际块数的部分直接置为已占用*/
    memset(&buf[block_bitmap_last_byte], 0xff, last_size);
-   
+
    /* 2 再将上一步中覆盖的最后一字节内的有效位重新置0 */
    uint8_t bit_idx = 0;
    while (bit_idx <= block_bitmap_last_bit) {
@@ -160,12 +161,12 @@ static void partition_format(struct partition* part) {
  ***************************************/
  /* 准备写inode_table中的第0项,即根目录所在的inode */
    memset(buf, 0, buf_size);  // 先清空缓冲区buf
-   struct inode* i = (struct inode*)buf; 
+   struct inode* i = (struct inode*)buf;
    i->i_size = sb.dir_entry_size * 2;	 // .和..
    i->i_no = 0;   // 根目录占inode数组中第0个inode
-   i->i_sectors[0] = sb.data_start_lba;	     // 由于上面的memset,i_sectors数组的其它元素都初始化为0 
+   i->i_sectors[0] = sb.data_start_lba;	     // 由于上面的memset,i_sectors数组的其它元素都初始化为0
    ide_write(hd, sb.inode_table_lba, buf, sb.inode_table_sects);
-   
+
 /***************************************
  * 5 将根目录初始化并写入sb.data_start_lba
  ***************************************/
@@ -207,7 +208,7 @@ char* path_parse(char* pathname, char* name_store) {
    if (pathname[0] == 0) {   // 若路径字符串为空则返回NULL
       return NULL;
    }
-   return pathname; 
+   return pathname;
 }
 
 /* 返回路径深度,比如/a/b/c,深度为3 */
@@ -217,7 +218,7 @@ int32_t path_depth_cnt(char* pathname) {
    char name[MAX_FILE_NAME_LEN];       // 用于path_parse的参数做路径解析
    uint32_t depth = 0;
 
-   /* 解析路径,从中拆分出各级名称 */ 
+   /* 解析路径,从中拆分出各级名称 */
    p = path_parse(p, name);
    while (name[0]) {
       depth++;
@@ -243,7 +244,7 @@ static int search_file(const char* pathname, struct path_search_record* searched
    /* 保证pathname至少是这样的路径/x且小于最大长度 */
    ASSERT(pathname[0] == '/' && path_len > 1 && path_len < MAX_PATH_LEN);
    char* sub_path = (char*)pathname;
-   struct dir* parent_dir = &root_dir;	
+   struct dir* parent_dir = &root_dir;
    struct dir_entry dir_e;
 
    /* 记录路径解析出来的各级名称,如路径"/a/b/c",
@@ -253,7 +254,7 @@ static int search_file(const char* pathname, struct path_search_record* searched
    searched_record->parent_dir = parent_dir;
    searched_record->file_type = FT_UNKNOWN;
    uint32_t parent_inode_no = 0;  // 父目录的inode号
-   
+
    sub_path = path_parse(sub_path, name);
    while (name[0]) {	   // 若第一个字符就是结束符,结束循环
       /* 记录查找过的路径,但不能超过searched_path的长度512字节 */
@@ -289,10 +290,10 @@ static int search_file(const char* pathname, struct path_search_record* searched
    }
 
    /* 执行到此,必然是遍历了完整路径并且查找的文件或目录只有同名目录存在 */
-   dir_close(searched_record->parent_dir);	      
+   dir_close(searched_record->parent_dir);
 
    /* 保存被查找目录的直接父目录 */
-   searched_record->parent_dir = dir_open(cur_part, parent_inode_no);	   
+   searched_record->parent_dir = dir_open(cur_part, parent_inode_no);
    searched_record->file_type = FT_DIRECTORY;
    return dir_e.i_no;
 }
@@ -315,7 +316,7 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
 
    /* 先检查文件是否存在 */
    int inode_no = search_file(pathname, &searched_record);
-   bool found = inode_no != -1 ? true : false; 
+   bool found = inode_no != -1 ? true : false;
 
    if (searched_record.file_type == FT_DIRECTORY) {
       printk("can`t open a direcotry with open(), use opendir() to instead\n");
@@ -364,19 +365,28 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
 }
 
 /* 将文件描述符转化为文件表的下标 */
-static uint32_t fd_local2global(uint32_t local_fd) {
+uint32_t fd_local2global(uint32_t local_fd) {
    struct task_struct* cur = running_thread();
-   int32_t global_fd = cur->fd_table[local_fd];  
+   int32_t global_fd = cur->fd_table[local_fd];
    ASSERT(global_fd >= 0 && global_fd < MAX_FILE_OPEN);
    return (uint32_t)global_fd;
-} 
+}
 
 /* 关闭文件描述符fd指向的文件,成功返回0,否则返回-1 */
 int32_t sys_close(int32_t fd) {
    int32_t ret = -1;   // 返回值默认为-1,即失败
    if (fd > 2) {
-      uint32_t _fd = fd_local2global(fd);
-      ret = file_close(&file_table[_fd]);
+      uint32_t global_fd = fd_local2global(fd);
+      if (is_pipe(fd)) {
+	 /* 如果此管道上的描述符都被关闭,释放管道的环形缓冲区 */
+	 if (--file_table[global_fd].fd_pos == 0) {
+	    mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
+	    file_table[global_fd].fd_inode = NULL;
+	 }
+	 ret = 0;
+      } else {
+	 ret = file_close(&file_table[global_fd]);
+      }
       running_thread()->fd_table[fd] = -1; // 使该文件描述符位可用
    }
    return ret;
@@ -388,20 +398,28 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
       printk("sys_write: fd error\n");
       return -1;
    }
-   if (fd == stdout_no) {  
-      char tmp_buf[1024] = {0};
-      memcpy(tmp_buf, buf, count);
-      console_put_str(tmp_buf);
-      return count;
-   }
-   uint32_t _fd = fd_local2global(fd);
-   struct file* wr_file = &file_table[_fd];
-   if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
-      uint32_t bytes_written  = file_write(wr_file, buf, count);
-      return bytes_written;
+   if (fd == stdout_no) {
+      /* 标准输出有可能被重定向为管道缓冲区, 因此要判断 */
+      if (is_pipe(fd)) {
+	 return pipe_write(fd, buf, count);
+      } else {
+	 char tmp_buf[1024] = {0};
+	 memcpy(tmp_buf, buf, count);
+	 console_put_str(tmp_buf);
+	 return count;
+      }
+   } else if (is_pipe(fd)){	    /* 若是管道就调用管道的方法 */
+      return pipe_write(fd, buf, count);
    } else {
-      console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
-      return -1;
+      uint32_t _fd = fd_local2global(fd);
+      struct file* wr_file = &file_table[_fd];
+      if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
+	 uint32_t bytes_written  = file_write(wr_file, buf, count);
+	 return bytes_written;
+      } else {
+	 console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
+	 return -1;
+      }
    }
 }
 
@@ -409,20 +427,28 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
 int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
    ASSERT(buf != NULL);
    int32_t ret = -1;
+   uint32_t global_fd = 0;
    if (fd < 0 || fd == stdout_no || fd == stderr_no) {
       printk("sys_read: fd error\n");
    } else if (fd == stdin_no) {
-      char* buffer = buf;
-      uint32_t bytes_read = 0;
-      while (bytes_read < count) {
-	 *buffer = ioq_getchar(&kbd_buf);
-	 bytes_read++;
-	 buffer++;
+      /* 标准输入有可能被重定向为管道缓冲区, 因此要判断 */
+      if (is_pipe(fd)) {
+	 ret = pipe_read(fd, buf, count);
+      } else {
+	 char* buffer = buf;
+	 uint32_t bytes_read = 0;
+	 while (bytes_read < count) {
+	    *buffer = ioq_getchar(&kbd_buf);
+	    bytes_read++;
+	    buffer++;
+	 }
+	 ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
       }
-      ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+   } else if (is_pipe(fd)) {	 /* 若是管道就调用管道的方法 */
+      ret = pipe_read(fd, buf, count);
    } else {
-      uint32_t _fd = fd_local2global(fd);
-      ret = file_read(&file_table[_fd], buf, count);   
+      global_fd = fd_local2global(fd);
+      ret = file_read(&file_table[global_fd], buf, count);
    }
    return ret;
 }
@@ -453,7 +479,7 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
       case SEEK_END:	   // 此情况下,offset应该为负值
 	 new_pos = file_size + offset;
    }
-   if (new_pos < 0 || new_pos > (file_size - 1)) {	 
+   if (new_pos < 0 || new_pos > (file_size - 1)) {
       return -1;
    }
    pf->fd_pos = new_pos;
@@ -494,7 +520,7 @@ int32_t sys_unlink(const char* pathname) {
       return -1;
    }
    ASSERT(file_idx == MAX_FILE_OPEN);
-   
+
    /* 为delete_dir_entry申请缓冲区 */
    void* io_buf = sys_malloc(SECTOR_SIZE + SECTOR_SIZE);
    if (io_buf == NULL) {
@@ -503,12 +529,12 @@ int32_t sys_unlink(const char* pathname) {
       return -1;
    }
 
-   struct dir* parent_dir = searched_record.parent_dir;  
+   struct dir* parent_dir = searched_record.parent_dir;
    delete_dir_entry(cur_part, parent_dir, inode_no, io_buf);
    inode_release(cur_part, inode_no);
    sys_free(io_buf);
    dir_close(searched_record.parent_dir);
-   return 0;   // 成功删除文件 
+   return 0;   // 成功删除文件
 }
 
 /* 创建目录pathname,成功返回0,失败返回-1 */
@@ -543,7 +569,7 @@ int32_t sys_mkdir(const char* pathname) {
    /* 目录名称后可能会有字符'/',所以最好直接用searched_record.searched_path,无'/' */
    char* dirname = strrchr(searched_record.searched_path, '/') + 1;
 
-   inode_no = inode_bitmap_alloc(cur_part); 
+   inode_no = inode_bitmap_alloc(cur_part);
    if (inode_no == -1) {
       printk("sys_mkdir: allocate inode failed\n");
       rollback_step = 1;
@@ -567,11 +593,11 @@ int32_t sys_mkdir(const char* pathname) {
    block_bitmap_idx = block_lba - cur_part->sb->data_start_lba;
    ASSERT(block_bitmap_idx != 0);
    bitmap_sync(cur_part, block_bitmap_idx, BLOCK_BITMAP);
-   
+
    /* 将当前目录的目录项'.'和'..'写入目录 */
    memset(io_buf, 0, SECTOR_SIZE * 2);	 // 清空io_buf
    struct dir_entry* p_de = (struct dir_entry*)io_buf;
-   
+
    /* 初始化当前目录"." */
    memcpy(p_de->filename, ".", 1);
    p_de->i_no = inode_no ;
@@ -618,7 +644,7 @@ int32_t sys_mkdir(const char* pathname) {
 rollback:	     // 因为某步骤操作失败而回滚
    switch (rollback_step) {
       case 2:
-	 bitmap_set(&cur_part->inode_bitmap, inode_no, 0);	 // 如果新文件的inode创建失败,之前位图中分配的inode_no也要恢复 
+	 bitmap_set(&cur_part->inode_bitmap, inode_no, 0);	 // 如果新文件的inode创建失败,之前位图中分配的inode_no也要恢复
       case 1:
 	 /* 关闭所创建目录的父目录 */
 	 dir_close(searched_record.parent_dir);
@@ -641,8 +667,8 @@ struct dir* sys_opendir(const char* name) {
    memset(&searched_record, 0, sizeof(struct path_search_record));
    int inode_no = search_file(name, &searched_record);
    struct dir* ret = NULL;
-   if (inode_no == -1) {	 // 如果找不到目录,提示不存在的路径 
-      printk("In %s, sub path %s not exist\n", name, searched_record.searched_path); 
+   if (inode_no == -1) {	 // 如果找不到目录,提示不存在的路径
+      printk("In %s, sub path %s not exist\n", name, searched_record.searched_path);
    } else {
       if (searched_record.file_type == FT_REGULAR) {
 	 printk("%s is regular file!\n", name);
@@ -684,11 +710,11 @@ int32_t sys_rmdir(const char* pathname) {
    ASSERT(inode_no != 0);
    int32_t retval = -1;	// 默认返回值
    if (inode_no == -1) {
-      printk("In %s, sub path %s not exist\n", pathname, searched_record.searched_path); 
+      printk("In %s, sub path %s not exist\n", pathname, searched_record.searched_path);
    } else {
       if (searched_record.file_type == FT_REGULAR) {
 	 printk("%s is regular file!\n", pathname);
-      } else { 
+      } else {
 	 struct dir* dir = dir_open(cur_part, inode_no);
 	 if (!dir_is_empty(dir)) {	 // 非空目录不可删除
 	    printk("dir %s is not empty, it is not allowed to delete a nonempty directory!\n", pathname);
@@ -711,7 +737,7 @@ static uint32_t get_parent_dir_inode_nr(uint32_t child_inode_nr, void* io_buf) {
    uint32_t block_lba = child_dir_inode->i_sectors[0];
    ASSERT(block_lba >= cur_part->sb->data_start_lba);
    inode_close(child_dir_inode);
-   ide_read(cur_part->my_disk, block_lba, io_buf, 1);   
+   ide_read(cur_part->my_disk, block_lba, io_buf, 1);
    struct dir_entry* dir_e = (struct dir_entry*)io_buf;
    /* 第0个目录项是".",第1个目录项是".." */
    ASSERT(dir_e[1].i_no < 4096 && dir_e[1].f_type == FT_DIRECTORY);
@@ -759,7 +785,7 @@ static int get_child_dir_name(uint32_t p_inode_nr, uint32_t c_inode_nr, char* pa
    return -1;
 }
 
-/* 把当前工作目录绝对路径写入buf, size是buf的大小. 
+/* 把当前工作目录绝对路径写入buf, size是buf的大小.
  当buf为NULL时,由操作系统分配存储工作路径的空间并返回地址
  失败则返回NULL */
 char* sys_getcwd(char* buf, uint32_t size) {
@@ -814,7 +840,7 @@ char* sys_getcwd(char* buf, uint32_t size) {
 /* 更改当前工作目录为绝对路径path,成功则返回0,失败返回-1 */
 int32_t sys_chdir(const char* path) {
    int32_t ret = -1;
-   struct path_search_record searched_record;  
+   struct path_search_record searched_record;
    memset(&searched_record, 0, sizeof(struct path_search_record));
    int inode_no = search_file(path, &searched_record);
    if (inode_no != -1) {
@@ -825,7 +851,7 @@ int32_t sys_chdir(const char* path) {
 	 printk("sys_chdir: %s is regular file or other!\n", path);
       }
    }
-   dir_close(searched_record.parent_dir); 
+   dir_close(searched_record.parent_dir);
    return ret;
 }
 
@@ -886,16 +912,16 @@ void filesys_init() {
 	    if (part_idx == 4) {  // 开始处理逻辑分区
 	       part = hd->logic_parts;
 	    }
-	 
+
 	 /* channels数组是全局变量,默认值为0,disk属于其嵌套结构,
 	  * partition又为disk的嵌套结构,因此partition中的成员默认也为0.
-	  * 若partition未初始化,则partition中的成员仍为0. 
+	  * 若partition未初始化,则partition中的成员仍为0.
 	  * 下面处理存在的分区. */
 	    if (part->sec_cnt != 0) {  // 如果分区存在
 	       memset(sb_buf, 0, SECTOR_SIZE);
 
 	       /* 读出分区的超级块,根据魔数是否正确来判断是否存在文件系统 */
-	       ide_read(hd, part->start_lba + 1, sb_buf, 1);   
+	       ide_read(hd, part->start_lba + 1, sb_buf, 1);
 
 	       /* 只支持自己的文件系统.若磁盘上已经有文件系统就不再格式化了 */
 	       if (sb_buf->magic == 0x19590318) {

@@ -1,3 +1,4 @@
+#include "fs/file.h"
 #include "fs/fs.h"
 #include "kernel/bitmap.h"
 #include "kernel/debug.h"
@@ -5,10 +6,11 @@
 #include "kernel/list.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
+#include "shell/pipe.h"
 #include "thread/thread.h"
 #include "userprog/wait_exit.h"
 
-/* 释放用户进程资源: 
+/* 释放用户进程资源:
  * 1 页表中对应的物理页
  * 2 虚拟内存池占物理页框
  * 3 关闭打开的文件 */
@@ -55,19 +57,26 @@ static void release_prog_resource(struct task_struct* release_thread) {
    mfree_page(PF_KERNEL, user_vaddr_pool_bitmap, bitmap_pg_cnt);
 
    /* 关闭进程打开的文件 */
-   uint8_t fd_idx = 3;
-   while(fd_idx < MAX_FILES_OPEN_PER_PROC) {
-      if (release_thread->fd_table[fd_idx] != -1) {
-	 sys_close(fd_idx);
+   uint8_t local_fd = 3;
+   while(local_fd < MAX_FILES_OPEN_PER_PROC) {
+      if (release_thread->fd_table[local_fd] != -1) {
+	 if (is_pipe(local_fd)) {
+	    uint32_t global_fd = fd_local2global(local_fd);
+	    if (--file_table[global_fd].fd_pos == 0) {
+	       mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
+	       file_table[global_fd].fd_inode = NULL;
+	    }
+	 } else {
+	    sys_close(local_fd);
+	 }
       }
-      fd_idx++;
+      local_fd++;
    }
 }
 
 /* list_traversal的回调函数,
  * 查找pelem的parent_pid是否是ppid,成功返回true,失败则返回false */
 static bool find_child(struct list_elem* pelem, int32_t ppid) {
-   /* elem2entry中间的参数all_list_tag取决于pelem对应的变量名 */
    struct task_struct* pthread = elem2entry(struct task_struct, all_list_tag, pelem);
    if (pthread->parent_pid == ppid) {     // 若该任务的parent_pid为ppid,返回
       return true;   // list_traversal只有在回调函数返回true时才会停止继续遍历,所以在此返回true
@@ -82,7 +91,7 @@ static bool find_hanging_child(struct list_elem* pelem, int32_t ppid) {
    if (pthread->parent_pid == ppid && pthread->status == TASK_HANGING) {
       return true;
    }
-   return false; 
+   return false;
 }
 
 /* list_traversal的回调函数,
@@ -106,7 +115,7 @@ pid_t sys_wait(int32_t* status) {
       /* 若有挂起的子进程 */
       if (child_elem != NULL) {
 	 struct task_struct* child_thread = elem2entry(struct task_struct, all_list_tag, child_elem);
-	 *status = child_thread->exit_status; 
+	 *status = child_thread->exit_status;
 
 	 /* thread_exit之后,pcb会被回收,因此提前获取pid */
 	 uint16_t child_pid = child_thread->pid;
@@ -116,7 +125,7 @@ pid_t sys_wait(int32_t* status) {
 	 /* 进程表项是进程或线程的最后保留的资源, 至此该进程彻底消失了 */
 
 	 return child_pid;
-      } 
+      }
 
       /* 判断是否有子进程 */
       child_elem = list_traversal(&thread_all_list, find_child, parent_thread->pid);
@@ -124,7 +133,7 @@ pid_t sys_wait(int32_t* status) {
 	 return -1;
       } else {
       /* 若子进程还未运行完,即还未调用exit,则将自己挂起,直到子进程在执行exit时将自己唤醒 */
-	 thread_block(TASK_WAITING); 
+	 thread_block(TASK_WAITING);
       }
    }
 }
@@ -132,7 +141,7 @@ pid_t sys_wait(int32_t* status) {
 /* 子进程用来结束自己时调用 */
 void sys_exit(int32_t status) {
    struct task_struct* child_thread = running_thread();
-   child_thread->exit_status = status; 
+   child_thread->exit_status = status;
    if (child_thread->parent_pid == -1) {
       PANIC("sys_exit: child_thread->parent_pid is -1\n");
    }
@@ -141,7 +150,7 @@ void sys_exit(int32_t status) {
    list_traversal(&thread_all_list, init_adopt_a_child, child_thread->pid);
 
    /* 回收进程child_thread的资源 */
-   release_prog_resource(child_thread); 
+   release_prog_resource(child_thread);
 
    /* 如果父进程正在等待子进程退出,将父进程唤醒 */
    struct task_struct* parent_thread = pid2thread(child_thread->parent_pid);

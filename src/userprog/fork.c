@@ -2,6 +2,7 @@
 #include "kernel/debug.h"
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
+#include "shell/pipe.h"
 #include "string.h"
 #include "thread/thread.h"    
 #include "userprog/fork.h"
@@ -29,6 +30,9 @@ static int32_t copy_pcb_vaddrbitmap_stack0(struct task_struct* child_thread, str
     * 下面将child_thread->userprog_vaddr.vaddr_bitmap.bits指向自己的位图vaddr_btmp */
    memcpy(vaddr_btmp, child_thread->userprog_vaddr.vaddr_bitmap.bits, bitmap_pg_cnt * PG_SIZE);
    child_thread->userprog_vaddr.vaddr_bitmap.bits = vaddr_btmp;
+   /* 调试用 */
+//   ASSERT(strlen(child_thread->name) < 11);	// pcb.name的长度是16,为避免下面strcat越界
+//   strcat(child_thread->name,"_fork");
    return 0;
 }
 
@@ -84,14 +88,14 @@ static int32_t build_child_stack(struct task_struct* child_thread) {
    uint32_t* ret_addr_in_thread_stack  = (uint32_t*)intr_0_stack - 1;
 
    /***   这三行不是必要的,只是为了梳理thread_stack中的关系 ***/
-   uint32_t* esi_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 2; 
-   uint32_t* edi_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 3; 
-   uint32_t* ebx_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 4; 
+   uint32_t* esi_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 2;
+   uint32_t* edi_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 3;
+   uint32_t* ebx_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 4;
    /**********************************************************/
 
    /* ebp在thread_stack中的地址便是当时的esp(0级栈的栈顶),
    即esp为"(uint32_t*)intr_0_stack - 5" */
-   uint32_t* ebp_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 5; 
+   uint32_t* ebp_ptr_in_thread_stack = (uint32_t*)intr_0_stack - 5;
 
    /* switch_to的返回地址更新为intr_exit,直接从中断返回 */
    *ret_addr_in_thread_stack = (uint32_t)intr_exit;
@@ -103,7 +107,7 @@ static int32_t build_child_stack(struct task_struct* child_thread) {
    /*********************************************************/
 
    /* 把构建的thread_stack的栈顶做为switch_to恢复数据时的栈顶 */
-   child_thread->self_kstack = ebp_ptr_in_thread_stack;	    
+   child_thread->self_kstack = ebp_ptr_in_thread_stack;
    return 0;
 }
 
@@ -114,7 +118,11 @@ static void update_inode_open_cnts(struct task_struct* thread) {
       global_fd = thread->fd_table[local_fd];
       ASSERT(global_fd < MAX_FILE_OPEN);
       if (global_fd != -1) {
-	 file_table[global_fd].fd_inode->i_open_cnts++;
+	 if (is_pipe(local_fd)) {
+	    file_table[global_fd].fd_pos++;
+	 } else {
+	    file_table[global_fd].fd_inode->i_open_cnts++;
+	 }
       }
       local_fd++;
    }
@@ -170,7 +178,6 @@ pid_t sys_fork(void) {
    list_append(&thread_ready_list, &child_thread->general_tag);
    ASSERT(!elem_find(&thread_all_list, &child_thread->all_list_tag));
    list_append(&thread_all_list, &child_thread->all_list_tag);
-   
+
    return child_thread->pid;    // 父进程返回子进程的pid
 }
-
