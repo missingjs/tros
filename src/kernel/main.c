@@ -15,26 +15,67 @@
 
 #include "device/ide.h"
 #include "kernel/stdio-kernel.h"
+#include "device/ioqueue.h"
 
 void init(void);
+
+struct ioqueue ioq;
+
+int c1 = 1, c2 = 2, c3 = 3, c4 = 4;
+int p1 = 1, p2 = 2, p3 = 3, p4 = 4;
+
+void consumer_thread(void* arg) {
+    int id = *(int*) arg;
+    int count = 0;
+    while (1) {
+        enum intr_status status = intr_disable();
+        char ch = ioq_getchar(&ioq);
+        intr_set_status(status);
+        ++count;
+        printk("consumer %d - %c %d\n", id, ch, count);
+    }
+}
+
+void producer_thread(void* arg) {
+    int id = *(int*) arg;
+    int count = 0;
+    while (1) {
+        enum intr_status status = intr_disable();
+        ioq_putchar(&ioq, 'A' + id - 1);
+        intr_set_status(status);
+        mtime_sleep(50000);
+    }
+}
 
 int main(void) {
    put_str("I am kernel\n");
    init_all();
 
+   ioqueue_init(&ioq);
+
+   thread_start("c1", 20, consumer_thread, &c1);
+   thread_start("c2", 20, consumer_thread, &c2);
+   thread_start("c3", 20, consumer_thread, &c3);
+   thread_start("c4", 20, consumer_thread, &c4);
+
+   thread_start("p1", 20, producer_thread, &p1);
+   thread_start("p2", 20, producer_thread, &p2);
+   thread_start("p3", 20, producer_thread, &p3);
+   thread_start("p4", 20, producer_thread, &p4);
+
 /*************    写入应用程序    *************/
-   uint32_t file_size = 11988;
-   uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
-   struct disk* sda = &channels[0].devices[0];
-   void* prog_buf = sys_malloc(sec_cnt * 512);
-   ide_read(sda, 300, prog_buf, sec_cnt);
-   int32_t fd = sys_open("/cat", O_CREAT|O_RDWR);
-   if (fd != -1) {
-      if(sys_write(fd, prog_buf, file_size) == -1) {
-         printk("file write error!\n");
-         while(1);
-      }
-   }
+//   uint32_t file_size = 11988;
+//   uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
+//   struct disk* sda = &channels[0].devices[0];
+//   void* prog_buf = sys_malloc(sec_cnt * 512);
+//   ide_read(sda, 300, prog_buf, sec_cnt);
+//   int32_t fd = sys_open("/cat", O_CREAT|O_RDWR);
+//   if (fd != -1) {
+//      if(sys_write(fd, prog_buf, file_size) == -1) {
+//         printk("file write error!\n");
+//         while(1);
+//      }
+//   }
 /*************    写入应用程序结束   *************/
    cls_screen();
    console_put_str("[rabbit@localhost /]$ ");
