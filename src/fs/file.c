@@ -171,8 +171,10 @@ rollback:
       case 3:
 	 /* 失败时,将file_table中的相应位清空 */
 	 memset(&file_table[fd_idx], 0, sizeof(struct file)); 
+     __attribute__ ((fallthrough));
       case 2:
 	 sys_free(new_file_inode);
+     __attribute__ ((fallthrough));
       case 1:
 	 /* 如果新文件的i结点创建失败,之前位图中分配的inode_no也要恢复 */
 	 bitmap_set(&cur_part->inode_bitmap, inode_no, 0);

@@ -645,6 +645,7 @@ rollback:	     // 因为某步骤操作失败而回滚
    switch (rollback_step) {
       case 2:
 	 bitmap_set(&cur_part->inode_bitmap, inode_no, 0);	 // 如果新文件的inode创建失败,之前位图中分配的inode_no也要恢复
+     __attribute__ ((fallthrough));
       case 1:
 	 /* 关闭所创建目录的父目录 */
 	 dir_close(searched_record.parent_dir);

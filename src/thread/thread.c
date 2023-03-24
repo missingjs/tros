@@ -248,6 +248,7 @@ static void pad_print(char* buf, int32_t buf_len, void* ptr, char format) {
 	 break;
       case 'd':
 	 out_pad_0idx = sprintf(buf, "%d", *((int16_t*)ptr));
+     break;
       case 'x':
 	 out_pad_0idx = sprintf(buf, "%x", *((uint32_t*)ptr));
    }
