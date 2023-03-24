@@ -103,8 +103,20 @@ int main(void) {
    int c1 = 1;
    thread_start("c1", 10, value_consumer, &c1);
 
+   int c2 = 2;
+   thread_start("c2", 10, value_consumer, &c2);
+
+   int c3 = 3;
+   thread_start("c3", 10, value_consumer, &c3);
+
    int p1 = 1;
    thread_start("p1", 10, value_producer, &p1);
+
+   int p2 = 2;
+   thread_start("p2", 10, value_producer, &p2);
+
+   int p3 = 3;
+   thread_start("p3", 10, value_producer, &p3);
 
 //   ioqueue_init(&ioq);
 //
