@@ -1,7 +1,7 @@
-#include "kernel/global.h"
 #include "kernel/debug.h"
+#include "kernel/global.h"
 #include "kernel/interrupt.h"
-#include "lib/kernel/list.h"
+#include "kernel/list.h"
 #include "thread/sync.h"
 
 /* 初始化信号量 */
@@ -78,4 +78,64 @@ void lock_release(struct lock* plock) {
    plock->holder = NULL;	   // 把锁的持有者置空放在V操作之前
    plock->holder_repeat_nr = 0;
    sema_up(&plock->semaphore);	   // 信号量的V操作,也是原子操作
+}
+
+static bool has_locked(struct condition_variable *cv) {
+    return cv->plock->holder == running_thread();
+}
+
+void cv_init(struct condition_variable *cv, struct lock *plock) {
+    ASSERT(cv != NULL && plock != NULL);
+    cv->plock = plock;
+    list_init(&cv->waiters);
+}
+
+void cv_wait(struct condition_variable *cv) {
+    struct task_struct *self = NULL;
+    enum intr_status status;
+
+    self = running_thread();
+    // current thread must be the lock holder
+    ASSERT(has_locked(cv));
+
+    // current thread must NOT be in the waiter list
+    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
+
+    status = intr_disable();
+
+    list_append(&cv->waiters, &self->general_tag);
+
+    lock_release(cv->plock);
+
+    thread_block(TASK_BLOCKED);
+
+    intr_set_status(status);
+
+    // awaken by other thread
+    ASSERT(self->status == TASK_RUNNING);
+    ASSERT(!has_locked(cv));
+    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
+
+    lock_acquire(cv->plock);
+}
+
+static void _cv_notify(struct condition_variable *cv, int n) {
+    int i = 0;
+    struct task_struct *self = running_thread();
+    ASSERT(has_locked(cv));
+    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
+    for (i = 0; i < n && !list_empty(&cv->waiters); ++i) {
+        struct list_elem *elem = list_pop(&cv->waiters);
+        struct task_struct *waiter = elem2entry(struct task_struct, general_tag, elem);
+        ASSERT(waiter->status == TASK_BLOCKED);
+        thread_unblock(waiter);
+    }
+}
+
+void cv_notify_one(struct condition_variable *cv) {
+    _cv_notify(cv, 1);
+}
+
+void cv_notify_all(struct condition_variable *cv) {
+    _cv_notify(cv, 2147483647);
 }

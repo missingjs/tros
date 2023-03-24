@@ -16,7 +16,6 @@
 #include "device/ide.h"
 #include "kernel/stdio-kernel.h"
 #include "device/ioqueue.h"
-#include "kernel/condition.h"
 
 void init(void);
 
@@ -64,71 +63,67 @@ void value_consumer(void* arg) {
     }
 }
 
-// struct ioqueue ioq;
-// 
-// int c1 = 1, c2 = 2, c3 = 3, c4 = 4;
-// int p1 = 1, p2 = 2, p3 = 3, p4 = 4;
-// 
-// void consumer_thread(void* arg) {
-//     int id = *(int*) arg;
-//     int count = 0;
-//     while (1) {
-//         enum intr_status status = intr_disable();
-//         char ch = ioq_getchar(&ioq);
-//         intr_set_status(status);
-//         ++count;
-//         printk("consumer %d - %c %d\n", id, ch, count);
-//     }
-// }
-// 
-// void producer_thread(void* arg) {
-//     int id = *(int*) arg;
-//     int count = 0;
-//     while (1) {
-//         enum intr_status status = intr_disable();
-//         ioq_putchar(&ioq, 'A' + id - 1);
-//         intr_set_status(status);
-//         mtime_sleep(50000);
-//     }
-// }
+struct ioqueue ioq;
+
+int c1 = 1, c2 = 2, c3 = 3, c4 = 4;
+int p1 = 1, p2 = 2, p3 = 3, p4 = 4;
+
+void consumer_thread(void* arg) {
+    int id = *(int*) arg;
+    int count = 0;
+    while (1) {
+        char ch = ioq_getchar(&ioq);
+        ++count;
+        printk("consumer %d - %c %d\n", id, ch, count);
+    }
+}
+
+void producer_thread(void* arg) {
+    int id = *(int*) arg;
+    int count = 0;
+    while (1) {
+        ioq_putchar(&ioq, 'A' + id - 1);
+        mtime_sleep(100);
+    }
+}
 
 int main(void) {
    put_str("I am kernel\n");
    init_all();
 
-   lock_init(&xlock);
-   cv_init(&cv_has_space, &xlock);
-   cv_init(&cv_has_value, &xlock);
-
-   int c1 = 1;
-   thread_start("c1", 10, value_consumer, &c1);
-
-   int c2 = 2;
-   thread_start("c2", 10, value_consumer, &c2);
-
-   int c3 = 3;
-   thread_start("c3", 10, value_consumer, &c3);
-
-   int p1 = 1;
-   thread_start("p1", 10, value_producer, &p1);
-
-   int p2 = 2;
-   thread_start("p2", 10, value_producer, &p2);
-
-   int p3 = 3;
-   thread_start("p3", 10, value_producer, &p3);
-
-//   ioqueue_init(&ioq);
+//   lock_init(&xlock);
+//   cv_init(&cv_has_space, &xlock);
+//   cv_init(&cv_has_value, &xlock);
 //
-//   thread_start("c1", 20, consumer_thread, &c1);
-//   thread_start("c2", 20, consumer_thread, &c2);
-//   thread_start("c3", 20, consumer_thread, &c3);
-//   thread_start("c4", 20, consumer_thread, &c4);
+//   int c1 = 1;
+//   thread_start("c1", 10, value_consumer, &c1);
 //
-//   thread_start("p1", 20, producer_thread, &p1);
-//   thread_start("p2", 20, producer_thread, &p2);
-//   thread_start("p3", 20, producer_thread, &p3);
-//   thread_start("p4", 20, producer_thread, &p4);
+//   int c2 = 2;
+//   thread_start("c2", 10, value_consumer, &c2);
+//
+//   int c3 = 3;
+//   thread_start("c3", 10, value_consumer, &c3);
+//
+//   int p1 = 1;
+//   thread_start("p1", 10, value_producer, &p1);
+//
+//   int p2 = 2;
+//   thread_start("p2", 10, value_producer, &p2);
+//
+//   int p3 = 3;
+//   thread_start("p3", 10, value_producer, &p3);
+
+   ioqueue_init(&ioq);
+
+   thread_start("c1", 20, consumer_thread, &c1);
+   thread_start("c2", 20, consumer_thread, &c2);
+   thread_start("c3", 20, consumer_thread, &c3);
+   thread_start("c4", 20, consumer_thread, &c4);
+
+   thread_start("p1", 20, producer_thread, &p1);
+   thread_start("p2", 20, producer_thread, &p2);
+   thread_start("p3", 20, producer_thread, &p3);
+   thread_start("p4", 20, producer_thread, &p4);
 
 /*************    写入应用程序    *************/
 //   uint32_t file_size = 11988;
