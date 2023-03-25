@@ -120,6 +120,7 @@ void cv_wait(struct condition_variable *cv) {
 }
 
 static void _cv_notify(struct condition_variable *cv, int n) {
+    enum intr_status old_status = intr_disable();
     int i = 0;
     struct task_struct *self = running_thread();
     ASSERT(has_locked(cv));
@@ -130,6 +131,7 @@ static void _cv_notify(struct condition_variable *cv, int n) {
         ASSERT(waiter->status == TASK_BLOCKED);
         thread_unblock(waiter);
     }
+    intr_set_status(old_status);
 }
 
 void cv_notify_one(struct condition_variable *cv) {
