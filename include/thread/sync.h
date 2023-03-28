@@ -31,5 +31,5 @@ void lock_release(struct lock* plock);
 void cv_init(struct condition_variable *cv, struct lock *plock);
 void cv_wait(struct condition_variable *cv);
 void cv_notify_one(struct condition_variable *cv);
-void cv_notify_all(struct condition_variable *cv);
+void cv_broadcast(struct condition_variable *cv);
 #endif

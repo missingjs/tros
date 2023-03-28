@@ -2,7 +2,33 @@
 #include "kernel/global.h"
 #include "kernel/interrupt.h"
 #include "kernel/list.h"
+#include "kernel/memory.h"
 #include "thread/sync.h"
+
+enum waiter_status {
+   WAITER_CREATED,
+   WAITER_QUEUED,
+   WAITER_BLOCKED,
+   WAITER_NOTIFIED
+};
+
+struct waiter_node {
+   struct task_struct *pthread;
+   enum waiter_status status;
+   struct list_elem link;
+};
+
+static struct waiter_node* create_waiter_node(struct task_struct *pthread) {
+   struct waiter_node* node = (struct waiter_node*) sys_malloc(sizeof(struct waiter_node));
+   node->pthread = pthread;
+   node->status = WAITER_CREATED;
+   node->link.prev = node->link.next = NULL;
+   return node;
+}
+
+static void release_waiter_node(struct waiter_node* pnode) {
+   sys_free(pnode);
+}
 
 /* 初始化信号量 */
 void sema_init(struct semaphore* psema, uint8_t value) {
@@ -85,59 +111,58 @@ static bool has_locked(struct condition_variable *cv) {
 }
 
 void cv_init(struct condition_variable *cv, struct lock *plock) {
-    ASSERT(cv != NULL && plock != NULL);
-    cv->plock = plock;
-    list_init(&cv->waiters);
+   ASSERT(cv != NULL && plock != NULL);
+   cv->plock = plock;
+   list_init(&cv->waiters);
 }
 
 void cv_wait(struct condition_variable *cv) {
-    struct task_struct *self = NULL;
-    enum intr_status status;
+   // current thread must be the lock holder
+   ASSERT(has_locked(cv));
 
-    self = running_thread();
-    // current thread must be the lock holder
-    ASSERT(has_locked(cv));
+   struct task_struct *self = running_thread();
+   struct waiter_node* wnode = create_waiter_node(self);
+   list_append(&cv->waiters, &wnode->link);
+   wnode->status = WAITER_QUEUED;
 
-    // current thread must NOT be in the waiter list
-    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
+   // release lock before get into blocked
+   lock_release(cv->plock);
 
-    status = intr_disable();
+   while (wnode->status != WAITER_NOTIFIED) {
+      enum intr_status old_status = intr_disable();
+      if (wnode->status != WAITER_NOTIFIED) {
+         wnode->status = WAITER_BLOCKED;
+         thread_block(TASK_BLOCKED);
+      }
+      intr_set_status(old_status);
+   }
 
-    list_append(&cv->waiters, &self->general_tag);
+   // re-acquire lock
+   lock_acquire(cv->plock);
 
-    lock_release(cv->plock);
-
-    thread_block(TASK_BLOCKED);
-
-    intr_set_status(status);
-
-    // awaken by other thread
-    ASSERT(self->status == TASK_RUNNING);
-    ASSERT(!has_locked(cv));
-    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
-
-    lock_acquire(cv->plock);
+   release_waiter_node(wnode);
 }
 
 static void _cv_notify(struct condition_variable *cv, int n) {
-    enum intr_status old_status = intr_disable();
-    int i = 0;
-    struct task_struct *self = running_thread();
-    ASSERT(has_locked(cv));
-    ASSERT(!elem_find(&cv->waiters, &self->general_tag));
-    for (i = 0; i < n && !list_empty(&cv->waiters); ++i) {
-        struct list_elem *elem = list_pop(&cv->waiters);
-        struct task_struct *waiter = elem2entry(struct task_struct, general_tag, elem);
-        ASSERT(waiter->status == TASK_BLOCKED);
-        thread_unblock(waiter);
-    }
-    intr_set_status(old_status);
+   // enum intr_status old_status = intr_disable();
+   int i = 0;
+   ASSERT(has_locked(cv));
+   for (i = 0; i < n && !list_empty(&cv->waiters); ++i) {
+      struct list_elem *elem = list_pop(&cv->waiters);
+      struct waiter_node *wnode = elem2entry(struct waiter_node, link, elem);
+      enum intr_status old_status = intr_disable();
+      if (wnode->status == WAITER_BLOCKED) {
+         thread_unblock(wnode->pthread);
+      }
+      wnode->status = WAITER_NOTIFIED;
+      intr_set_status(old_status);
+   }
 }
 
 void cv_notify_one(struct condition_variable *cv) {
-    _cv_notify(cv, 1);
+   _cv_notify(cv, 1);
 }
 
-void cv_notify_all(struct condition_variable *cv) {
-    _cv_notify(cv, 2147483647);
+void cv_broadcast(struct condition_variable *cv) {
+   _cv_notify(cv, 2147483647);
 }
