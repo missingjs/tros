@@ -77,7 +77,8 @@ struct thread_stack {
 
 /* 进程或线程的pcb,程序控制块 */
 struct task_struct {
-   uint32_t* self_kstack;	 // 各内核线程都用自己的内核栈
+   void* self_kstack;	 // 各内核线程都用自己的内核栈
+   // uint32_t* self_kstack;	 // 各内核线程都用自己的内核栈
    pid_t pid;
    enum task_status status;
    char name[TASK_NAME_LEN];
