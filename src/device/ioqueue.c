@@ -9,7 +9,7 @@ void ioqueue_init(struct ioqueue* ioq) {
    cv_init(&ioq->cond_space_avail, &ioq->lock);
    cv_init(&ioq->cond_data_avail, &ioq->lock);
 //   ioq->producer = ioq->consumer = NULL;  // 生产者和消费者置空
-//   ioq->head = ioq->tail = 0; // 队列的首尾指针指向缓冲区数组第0个位置
+   ioq->head = ioq->tail = 0; // 队列的首尾指针指向缓冲区数组第0个位置
 }
 
 /* 返回pos在缓冲区中的下一个位置值 */
