@@ -27,7 +27,7 @@ static struct waiter_node* create_waiter_node(struct task_struct *pthread) {
 }
 
 static void release_waiter_node(struct waiter_node* pnode) {
-   sys_free(pnode);
+   sys_free_kernel(pnode);
 }
 
 /* 初始化信号量 */

@@ -500,6 +500,14 @@ void sys_free(void* ptr) {
    }
 }
 
+void sys_free_kernel(void* ptr) {
+   struct task_struct* cur = running_thread();
+   uint32_t* cur_pagedir_bak = cur->pgdir;
+   cur->pgdir = NULL;
+   sys_free(ptr);		         // 释放inode的内核空间
+   cur->pgdir = cur_pagedir_bak;
+}
+
 /* 初始化内存池 */
 static void mem_pool_init(uint32_t all_mem) {
    put_str("   mem_pool_init start\n");
