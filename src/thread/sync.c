@@ -19,7 +19,7 @@ struct waiter_node {
 };
 
 static struct waiter_node* create_waiter_node(struct task_struct *pthread) {
-   struct waiter_node* node = (struct waiter_node*) sys_malloc(sizeof(struct waiter_node));
+   struct waiter_node* node = (struct waiter_node*) sys_malloc_kernel(sizeof(struct waiter_node));
    node->pthread = pthread;
    node->status = WAITER_CREATED;
    node->link.prev = node->link.next = NULL;
@@ -144,7 +144,6 @@ void cv_wait(struct condition_variable *cv) {
 }
 
 static void _cv_notify(struct condition_variable *cv, int n) {
-   // enum intr_status old_status = intr_disable();
    int i = 0;
    ASSERT(has_locked(cv));
    for (i = 0; i < n && !list_empty(&cv->waiters); ++i) {

@@ -356,6 +356,15 @@ void* sys_malloc(uint32_t size) {
    }
 }
 
+void* sys_malloc_kernel(uint32_t size) {
+   struct task_struct* cur = running_thread();
+   uint32_t* cur_pagedir_bak = cur->pgdir;
+   cur->pgdir = NULL;
+   void* block = sys_malloc(size);
+   cur->pgdir = cur_pagedir_bak;
+   return block;
+}
+
 /* 将物理地址pg_phy_addr回收到物理内存池 */
 void pfree(uint32_t pg_phy_addr) {
    struct pool* mem_pool;

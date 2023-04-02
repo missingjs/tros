@@ -201,7 +201,6 @@ static void intr_keyboard_handler(void) {
 	    cur_char -= 'a';
 	 }
       /****************************************************************/
-
    /* 若kbd_buf中未满并且待加入的cur_char不为0,
     * 则将其加入到缓冲区kbd_buf中 */
 	 if (!ioq_full(&kbd_buf)) {

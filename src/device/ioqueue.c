@@ -8,7 +8,6 @@ void ioqueue_init(struct ioqueue* ioq) {
    lock_init(&ioq->lock);     // 初始化io队列的锁
    cv_init(&ioq->cond_space_avail, &ioq->lock);
    cv_init(&ioq->cond_data_avail, &ioq->lock);
-//   ioq->producer = ioq->consumer = NULL;  // 生产者和消费者置空
    ioq->head = ioq->tail = 0; // 队列的首尾指针指向缓冲区数组第0个位置
 }
 
@@ -81,26 +80,19 @@ char ioq_getchar(struct ioqueue* ioq) {
 
 /* 生产者往ioq队列中写入一个字符byte */
 void ioq_putchar(struct ioqueue* ioq, char byte) {
-    lock_acquire(&ioq->lock);
-//   ASSERT(intr_get_status() == INTR_OFF);
+   lock_acquire(&ioq->lock);
 
 /* 若缓冲区(队列)已经满了,把生产者ioq->producer记为自己,
  * 为的是当缓冲区里的东西被消费者取完后让消费者知道唤醒哪个生产者,
  * 也就是唤醒当前线程自己*/
    while (is_ioq_full(ioq)) {
        cv_wait(&ioq->cond_space_avail);
-      // lock_acquire(&ioq->lock);
-      // ioq_wait(&ioq->producer);
-      // lock_release(&ioq->lock);
    }
    ioq->buf[ioq->head] = byte;      // 把字节放入缓冲区中
    ioq->head = next_pos(ioq->head); // 把写游标移到下一位置
 
-   // if (ioq->consumer != NULL) {
-   //    wakeup(&ioq->consumer);          // 唤醒消费者
-   // }
    cv_notify_one(&ioq->cond_data_avail);
-    lock_release(&ioq->lock);
+   lock_release(&ioq->lock);
 }
 
 /* 返回环形缓冲区中的数据长度 */
