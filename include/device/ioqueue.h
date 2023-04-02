@@ -14,11 +14,14 @@ struct ioqueue {
     char buf[bufsize];			    // 缓冲区大小
     int32_t head;			    // 队首,数据往队首处写入
     int32_t tail;			    // 队尾,数据从队尾处读出
+    bool closed;
 };
 
 void ioqueue_init(struct ioqueue* ioq);
 bool ioq_full(struct ioqueue* ioq);
-char ioq_getchar(struct ioqueue* ioq);
-void ioq_putchar(struct ioqueue* ioq, char byte);
+int ioq_getchar(struct ioqueue* ioq);
+bool ioq_putchar(struct ioqueue* ioq, char byte);
 uint32_t ioq_length(struct ioqueue* ioq);
+void ioq_close(struct ioqueue* ioq);
+bool ioq_is_closed(struct ioqueue* ioq);
 #endif
