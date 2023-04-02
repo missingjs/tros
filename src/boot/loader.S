@@ -258,7 +258,7 @@ mem_clear:
    inc edi
    loop .clear_byte
 
-.mem_clear_end
+.mem_clear_end:
    pop ecx
    pop ebp
    ret
