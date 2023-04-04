@@ -13,10 +13,17 @@
 #define DEFAULT_SECS 1
 
 static int32_t file_read(struct file* file, void* buf, uint32_t count);
-static int32_t disk_file_read(struct file *, char *, uint32_t, int32_t *);
+static int32_t disk_file_read(struct file *, char *, uint32_t);
+static int32_t file_write(struct file* file, const void* buf, uint32_t count);
+static int32_t disk_file_write(struct file *, const char *, uint32_t);
+static int32_t disk_file_release(struct file *);
+static int32_t disk_file_lseek(struct file *filp, int32_t offset, int32_t whence);
 
 static struct file_operations disk_file_ops = {
-   .read = disk_file_read,
+   .llseek  = disk_file_lseek,
+   .read    = disk_file_read,
+   .write   = disk_file_write,
+   .release = disk_file_release,
 };
 
 /* 文件表 */
@@ -225,7 +232,7 @@ int32_t file_open(uint32_t inode_no, uint8_t flag) {
 }
 
 /* 关闭文件 */
-int32_t file_close(struct file* file) {
+static int32_t disk_file_release(struct file* file) {
    if (file == NULL) {
       return -1;
    }
@@ -235,8 +242,12 @@ int32_t file_close(struct file* file) {
    return 0;
 }
 
+static int32_t disk_file_write(struct file *filp, const char *content, uint32_t length) {
+   return file_write(filp, (const void*) content, length);
+}
+
 /* 把buf中的count个字节写入file,成功则返回写入的字节数,失败则返回-1 */
-int32_t file_write(struct file* file, const void* buf, uint32_t count) {
+static int32_t file_write(struct file* file, const void* buf, uint32_t count) {
    if ((file->fd_inode->i_size + count) > (BLOCK_SIZE * 140))	{   // 文件目前最大只支持512*140=71680字节
       printk("exceed max file_size 71680 bytes, write file failed\n");
       return -1;
@@ -427,7 +438,7 @@ int32_t file_write(struct file* file, const void* buf, uint32_t count) {
    return bytes_written;
 }
 
-static int32_t disk_file_read(struct file *file, char *buffer, uint32_t length, int32_t *ppos UNUSED) {
+static int32_t disk_file_read(struct file *file, char *buffer, uint32_t length) {
    return file_read(file, (void*)buffer, length);
 }
 
@@ -524,4 +535,29 @@ static int32_t file_read(struct file* file, void* buf, uint32_t count) {
    sys_free(all_blocks);
    sys_free(io_buf);
    return bytes_read;
+}
+
+static int32_t disk_file_lseek(struct file *filp, int32_t offset, int32_t whence) {
+   ASSERT(whence > 0 && whence < 4);
+   int32_t new_pos = 0;   //新的偏移量必须位于文件大小之内
+   int32_t file_size = (int32_t)filp->fd_inode->i_size;
+   switch (whence) {
+      /* SEEK_SET 新的读写位置是相对于文件开头再增加offset个位移量 */
+      case SEEK_SET:
+	 new_pos = offset;
+	 break;
+
+      /* SEEK_CUR 新的读写位置是相对于当前的位置增加offset个位移量 */
+      case SEEK_CUR:	// offse可正可负
+	 new_pos = (int32_t)filp->fd_pos + offset;
+	 break;
+
+      /* SEEK_END 新的读写位置是相对于文件尺寸再增加offset个位移量 */
+      case SEEK_END:	   // 此情况下,offset应该为负值
+	 new_pos = file_size + offset;
+   }
+   if (new_pos < 0 || new_pos > (file_size - 1)) {
+      return -1;
+   }
+   return (filp->fd_pos = new_pos);
 }

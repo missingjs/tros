@@ -11,10 +11,9 @@ struct inode;
 
 struct file_operations {
    int32_t (* llseek)(struct file *, int32_t, int32_t);   // (filp, offset, whence)
-   int32_t (* read)(struct file *, char *, uint32_t, int32_t *);         // (filp, buffer, size, filepos)
-   int32_t (* write)(struct file *, const char *, uint32_t, int32_t *);  // (filp, buffer, size, filepos)
-   // int32_t (* open)(struct inode *, struct file *);
-   int32_t (* release)(struct inode *, struct file *);
+   int32_t (* read)(struct file *, char *, uint32_t);         // (filp, buffer, size, filepos)
+   int32_t (* write)(struct file *, const char *, uint32_t);  // (filp, buffer, size, filepos)
+   int32_t (* release)(struct file *);
 };
 
 /* 文件结构 */
@@ -50,6 +49,5 @@ void bitmap_sync(struct partition* part, uint32_t bit_idx, uint8_t btmp);
 int32_t get_free_slot_in_global(void);
 int32_t pcb_fd_install(int32_t globa_fd_idx);
 int32_t file_open(uint32_t inode_no, uint8_t flag);
-int32_t file_close(struct file* file);
-int32_t file_write(struct file* file, const void* buf, uint32_t count);
+// int32_t file_close(struct file* file);
 #endif
