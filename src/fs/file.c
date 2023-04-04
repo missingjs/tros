@@ -12,6 +12,13 @@
 
 #define DEFAULT_SECS 1
 
+static int32_t file_read(struct file* file, void* buf, uint32_t count);
+static int32_t disk_file_read(struct file *, char *, uint32_t, int32_t *);
+
+static struct file_operations disk_file_ops = {
+   .read = disk_file_read,
+};
+
 /* 文件表 */
 struct file file_table[MAX_FILE_OPEN];
 
@@ -129,10 +136,12 @@ int32_t file_create(struct dir* parent_dir, char* filename, uint8_t flag) {
       goto rollback;
    }
 
-   file_table[fd_idx].fd_inode = new_file_inode;
-   file_table[fd_idx].fd_pos = 0;
-   file_table[fd_idx].fd_flag = flag;
-   file_table[fd_idx].fd_inode->write_deny = false;
+   struct file *filp = &file_table[fd_idx];
+   filp->fd_inode = new_file_inode;
+   filp->fd_pos = 0;
+   filp->fd_flag = flag;
+   filp->op = &disk_file_ops;
+   filp->fd_inode->write_deny = false;
 
    struct dir_entry new_dir_entry;
    memset(&new_dir_entry, 0, sizeof(struct dir_entry));
@@ -191,10 +200,13 @@ int32_t file_open(uint32_t inode_no, uint8_t flag) {
       printk("exceed max open files\n");
       return -1;
    }
-   file_table[fd_idx].fd_inode = inode_open(cur_part, inode_no);
-   file_table[fd_idx].fd_pos = 0;	     // 每次打开文件,要将fd_pos还原为0,即让文件内的指针指向开头
-   file_table[fd_idx].fd_flag = flag;
-   bool* write_deny = &file_table[fd_idx].fd_inode->write_deny; 
+
+   struct file *filp = &file_table[fd_idx];
+   filp->fd_inode = inode_open(cur_part, inode_no);
+   filp->fd_pos = 0;	     // 每次打开文件,要将fd_pos还原为0,即让文件内的指针指向开头
+   filp->fd_flag = flag;
+   filp->op = &disk_file_ops;
+   bool* write_deny = &filp->fd_inode->write_deny; 
 
    if (flag == O_WRONLY || flag == O_RDWR) {	// 只要是关于写文件,判断是否有其它进程正写此文件
 						// 若是读文件,不考虑write_deny
@@ -415,8 +427,12 @@ int32_t file_write(struct file* file, const void* buf, uint32_t count) {
    return bytes_written;
 }
 
+static int32_t disk_file_read(struct file *file, char *buffer, uint32_t length, int32_t *ppos UNUSED) {
+   return file_read(file, (void*)buffer, length);
+}
+
 /* 从文件file中读取count个字节写入buf, 返回读出的字节数,若到文件尾则返回-1 */
-int32_t file_read(struct file* file, void* buf, uint32_t count) {
+static int32_t file_read(struct file* file, void* buf, uint32_t count) {
    uint8_t* buf_dst = (uint8_t*)buf;
    uint32_t size = count, size_left = size;
 

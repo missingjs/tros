@@ -448,7 +448,8 @@ int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
       ret = pipe_read(fd, buf, count);
    } else {
       global_fd = fd_local2global(fd);
-      ret = file_read(&file_table[global_fd], buf, count);
+      struct file *filp = &file_table[global_fd];
+      ret = filp->op->read(filp, buf, count, &filp->fd_pos);
    }
    return ret;
 }
