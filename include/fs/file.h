@@ -5,11 +5,26 @@
 #include "kernel/global.h"
 #include "stdint.h"
 
+struct file;
+struct inode;
+
+struct file_operations {
+   int32_t (* llseek)(struct file *, int32_t, int32_t);   // (filp, offset, whence)
+   int32_t (* read)(struct file *, char *, uint32_t, int32_t *);         // (filp, buffer, size, filepos)
+   int32_t (* write)(struct file *, const char *, uint32_t, int32_t *);  // (filp, buffer, size, filepos)
+   int32_t (* open)(struct inode *, struct file *);
+   int32_t (* release)(struct inode *, struct file *);
+};
+
 /* 文件结构 */
 struct file {
-   uint32_t fd_pos;      // 记录当前文件操作的偏移地址,以0为起始,最大为文件大小-1
+   // uint32_t fd_pos;      // 记录当前文件操作的偏移地址,以0为起始,最大为文件大小-1
+   int32_t fd_pos;
    uint32_t fd_flag;
    struct inode* fd_inode;
+
+   
+   struct file_operations* op;
 };
 
 /* 标准输入输出描述符 */
