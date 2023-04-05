@@ -17,4 +17,7 @@ int atomic_set(struct atomic_t* v, int x);
 // return old value if success, or return the current value of v->counter
 int atomic_cmpxchg(struct atomic_t* v, int old, int _new);
 
+int atomic_inc(struct atomic_t* v);
+int atomic_dec(struct atomic_t* v);
+
 #endif

@@ -42,3 +42,27 @@ int atomic_cmpxchg(struct atomic_t* v, int old, int _new) {
     interrupt_restore(status);
     return res;
 }
+
+int atomic_inc(struct atomic_t* v) {
+    int old, _new;
+    while (true) {
+        old = atomic_read(v);
+        _new = old + 1;
+        if (atomic_cmpxchg(v, old, _new) == old) {
+            break;
+        }
+    }
+    return _new;
+}
+
+int atomic_dec(struct atomic_t* v) {
+    int old, _new;
+    while (true) {
+        old = atomic_read(v);
+        _new = old - 1;
+        if (atomic_cmpxchg(v, old, _new) == old) {
+            break;
+        }
+    }
+    return _new;
+}

@@ -949,6 +949,7 @@ void filesys_init() {
    open_root_dir(cur_part);
 
    /* 初始化文件表 */
+   lock_init(&file_table_lock);
    uint32_t fd_idx = 0;
    while (fd_idx < MAX_FILE_OPEN) {
       file_table[fd_idx++].fd_inode = NULL;

@@ -28,9 +28,11 @@ static struct file_operations disk_file_ops = {
 
 /* 文件表 */
 struct file file_table[MAX_FILE_OPEN];
+struct lock file_table_lock;
 
 /* 从文件表file_table中获取一个空闲位,成功返回下标,失败返回-1 */
 int32_t get_free_slot_in_global(void) {
+   lock_acquire(&file_table_lock);
    uint32_t fd_idx = 3;
    while (fd_idx < MAX_FILE_OPEN) {
       if (file_table[fd_idx].fd_inode == NULL) {
@@ -40,8 +42,10 @@ int32_t get_free_slot_in_global(void) {
    }
    if (fd_idx == MAX_FILE_OPEN) {
       printk("exceed max open files\n");
+      lock_release(&file_table_lock);
       return -1;
    }
+   lock_release(&file_table_lock);
    return fd_idx;
 }
 
@@ -144,9 +148,10 @@ int32_t file_create(struct dir* parent_dir, char* filename, uint8_t flag) {
    }
 
    struct file *filp = &file_table[fd_idx];
+   init_file_struct(filp);
    filp->fd_inode = new_file_inode;
-   filp->fd_pos = 0;
    filp->fd_flag = flag;
+   atomic_inc(&filp->count);
    filp->op = &disk_file_ops;
    filp->fd_inode->write_deny = false;
 
@@ -209,25 +214,30 @@ int32_t file_open(uint32_t inode_no, uint8_t flag) {
    }
 
    struct file *filp = &file_table[fd_idx];
+   init_file_struct(filp);
    filp->fd_inode = inode_open(cur_part, inode_no);
-   filp->fd_pos = 0;	     // 每次打开文件,要将fd_pos还原为0,即让文件内的指针指向开头
    filp->fd_flag = flag;
+   atomic_inc(&filp->count);
    filp->op = &disk_file_ops;
-   bool* write_deny = &filp->fd_inode->write_deny; 
+   bool* write_deny = &filp->fd_inode->write_deny;
 
-   if (flag == O_WRONLY || flag == O_RDWR) {	// 只要是关于写文件,判断是否有其它进程正写此文件
-						// 若是读文件,不考虑write_deny
-   /* 以下进入临界区前先关中断 */
+   if (flag == O_WRONLY || flag == O_RDWR)
+   { // 只要是关于写文件,判断是否有其它进程正写此文件
+      // 若是读文件,不考虑write_deny
+      /* 以下进入临界区前先关中断 */
       enum intr_status old_status = intr_disable();
-      if (!(*write_deny)) {    // 若当前没有其它进程写该文件,将其占用.
-	 *write_deny = true;   // 置为true,避免多个进程同时写此文件
-	 intr_set_status(old_status);	  // 恢复中断
-      } else {		// 直接失败返回
-	 intr_set_status(old_status);
-	 printk("file can`t be write now, try again later\n");
-	 return -1;
+      if (!(*write_deny))
+      {                          // 若当前没有其它进程写该文件,将其占用.
+         *write_deny = true;          // 置为true,避免多个进程同时写此文件
+         intr_set_status(old_status); // 恢复中断
       }
-   }  // 若是读文件或创建文件,不用理会write_deny,保持默认
+      else
+      { // 直接失败返回
+         intr_set_status(old_status);
+         printk("file can`t be write now, try again later\n");
+         return -1;
+      }
+   } // 若是读文件或创建文件,不用理会write_deny,保持默认
    return pcb_fd_install(fd_idx);
 }
 
@@ -236,9 +246,11 @@ static int32_t disk_file_release(struct file* file) {
    if (file == NULL) {
       return -1;
    }
-   file->fd_inode->write_deny = false;
-   inode_close(file->fd_inode);
-   file->fd_inode = NULL;   // 使文件结构可用
+   if (atomic_dec(&file->count) == 0) {
+      file->fd_inode->write_deny = false;
+      inode_close(file->fd_inode);
+      finalize_file_struct(file);
+   }
    return 0;
 }
 
@@ -560,4 +572,16 @@ static int32_t disk_file_lseek(struct file *filp, int32_t offset, int32_t whence
       return -1;
    }
    return (filp->fd_pos = new_pos);
+}
+
+void init_file_struct(struct file *filp) {
+   filp->fd_pos = 0;
+   filp->fd_flag = 0;
+   filp->fd_inode = NULL;
+   atomic_init(&filp->count);
+   filp->op = NULL;
+}
+
+void finalize_file_struct(struct file *filp) {
+   filp->fd_inode = NULL;
 }

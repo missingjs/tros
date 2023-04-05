@@ -112,17 +112,20 @@ static int32_t build_child_stack(struct task_struct* child_thread) {
 }
 
 /* 更新inode打开数 */
-static void update_inode_open_cnts(struct task_struct* thread) {
+static void update_file_open_cnts(struct task_struct *thread)
+{
    int32_t local_fd = 3, global_fd = 0;
    while (local_fd < MAX_FILES_OPEN_PER_PROC) {
       global_fd = thread->fd_table[local_fd];
       ASSERT(global_fd < MAX_FILE_OPEN);
       if (global_fd != -1) {
-	 if (is_pipe(local_fd)) {
-	    file_table[global_fd].fd_pos++;
-	 } else {
-	    file_table[global_fd].fd_inode->i_open_cnts++;
-	 }
+         if (is_pipe(local_fd)) {
+            file_table[global_fd].fd_pos++;
+         }
+         else {
+            // file_table[global_fd].fd_inode->i_open_cnts++;
+            atomic_inc(&file_table[global_fd].count);
+         }
       }
       local_fd++;
    }
@@ -153,8 +156,8 @@ static int32_t copy_process(struct task_struct* child_thread, struct task_struct
    /* d 构建子进程thread_stack和修改返回值pid */
    build_child_stack(child_thread);
 
-   /* e 更新文件inode的打开数 */
-   update_inode_open_cnts(child_thread);
+   /* e 更新 struct file 的打开数 */
+   update_file_open_cnts(child_thread);
 
    mfree_page(PF_KERNEL, buf_page, 1);
    return 0;
