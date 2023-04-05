@@ -30,6 +30,17 @@ static struct file_operations disk_file_ops = {
 struct file file_table[MAX_FILE_OPEN];
 struct lock file_table_lock;
 
+static struct inode dummy_inode;
+
+struct inode *get_dummy_inode(void) {
+   return &dummy_inode;
+}
+
+void release_free_slot_in_global(int32_t fd) {
+   ASSERT(fd >= 0 && fd < MAX_FILE_OPEN);
+   file_table[fd].fd_inode = NULL;
+}
+
 /* 从文件表file_table中获取一个空闲位,成功返回下标,失败返回-1 */
 int32_t get_free_slot_in_global(void) {
    lock_acquire(&file_table_lock);
@@ -45,6 +56,7 @@ int32_t get_free_slot_in_global(void) {
       lock_release(&file_table_lock);
       return -1;
    }
+   file_table[fd_idx].fd_inode = &dummy_inode;
    lock_release(&file_table_lock);
    return fd_idx;
 }
@@ -580,6 +592,7 @@ void init_file_struct(struct file *filp) {
    filp->fd_inode = NULL;
    atomic_init(&filp->count);
    filp->op = NULL;
+   filp->private_data = NULL;
 }
 
 void finalize_file_struct(struct file *filp) {

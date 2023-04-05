@@ -22,6 +22,8 @@ bool ioq_full(struct ioqueue* ioq);
 int ioq_getchar(struct ioqueue* ioq);
 bool ioq_putchar(struct ioqueue* ioq, char byte);
 uint32_t ioq_length(struct ioqueue* ioq);
+
+// TODO ?
 void ioq_close(struct ioqueue* ioq);
 bool ioq_is_closed(struct ioqueue* ioq);
 #endif

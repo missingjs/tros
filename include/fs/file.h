@@ -25,6 +25,7 @@ struct file {
    struct inode* fd_inode;
    struct atomic_t count;
    struct file_operations* op;
+   void *private_data;
 };
 
 /* 标准输入输出描述符 */
@@ -55,4 +56,6 @@ int32_t file_open(uint32_t inode_no, uint8_t flag);
 
 void init_file_struct(struct file *filp);
 void finalize_file_struct(struct file *filp);
+
+void release_free_slot_in_global(int32_t fd);
 #endif
