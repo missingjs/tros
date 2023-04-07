@@ -255,14 +255,9 @@ int32_t file_open(uint32_t inode_no, uint8_t flag) {
 
 /* 关闭文件 */
 static int32_t disk_file_release(struct file* file) {
-   if (file == NULL) {
-      return -1;
-   }
-   if (atomic_dec(&file->count) == 0) {
-      file->fd_inode->write_deny = false;
-      inode_close(file->fd_inode);
-      finalize_file_struct(file);
-   }
+   ASSERT(file != NULL);
+   file->fd_inode->write_deny = false;
+   inode_close(file->fd_inode);
    return 0;
 }
 

@@ -119,13 +119,13 @@ static void update_file_open_cnts(struct task_struct *thread)
       global_fd = thread->fd_table[local_fd];
       ASSERT(global_fd < MAX_FILE_OPEN);
       if (global_fd != -1) {
-         if (is_pipe(local_fd)) {
-            file_table[global_fd].fd_pos++;
-         }
-         else {
+         // if (is_pipe(local_fd)) {
+         //    file_table[global_fd].fd_pos++;
+         // }
+         // else {
             // file_table[global_fd].fd_inode->i_open_cnts++;
             atomic_inc(&file_table[global_fd].count);
-         }
+         // }
       }
       local_fd++;
    }

@@ -378,7 +378,13 @@ int32_t sys_close(int32_t fd) {
    if (fd > 2) {
       uint32_t global_fd = fd_local2global(fd);
       struct file *filp = &file_table[global_fd];
-      ret = filp->op->release(filp);
+      if (atomic_dec(&filp->count) == 0) {
+         ret = filp->op->release(filp);
+         finalize_file_struct(filp);
+         release_free_slot_in_global(global_fd);
+      } else {
+         ret = 0;
+      }
    //    if (is_pipe(fd)) {
    //  /* 如果此管道上的描述符都被关闭,释放管道的环形缓冲区 */
    //  if (--file_table[global_fd].fd_pos == 0)

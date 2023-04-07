@@ -1,7 +1,10 @@
 #include "device/ioqueue.h"
 #include "fs/file.h"
 #include "fs/fs.h"
+#include "kernel/debug.h"
+#include "kernel/global.h"
 #include "kernel/memory.h"
+#include "kernel/stdio-kernel.h"
 #include "shell/pipe.h"
 #include "thread/sync.h"
 #include "thread/thread.h"
@@ -9,8 +12,8 @@
 struct pipe_struct {
     struct lock lock;
     struct ioqueue q;
-    int reader;
-    int writer;
+    int has_reader;
+    int has_writer;
 };
 
 static int32_t anon_pipe_read(struct file *, char *, uint32_t);
@@ -36,12 +39,12 @@ static struct file_operations pipe_writer_ops = {
    .release = anon_pipe_release_writer,
 };
 
-static struct pipe_struct *create_pipe() {
+static struct pipe_struct *create_pipe(void) {
    struct pipe_struct *p = (struct pipe_struct *) get_kernel_pages(1);
    if (p) {
       lock_init(&p->lock);
       ioqueue_init(&p->q);
-      p->reader = p->writer = 0;
+      p->has_reader = p->has_writer = 0;
    }
    return p;
 }
@@ -86,14 +89,14 @@ int32_t sys_pipe(int32_t pipefd[2]) {
    rfi->fd_flag = O_RDWR;
    rfi->op = &pipe_reader_ops;
    rfi->private_data = pp;
-   pp->reader = 1;
+   pp->has_reader = 1;
 
    init_file_struct(wfi);
    atomic_inc(&wfi->count);
    wfi->fd_flag = O_RDWR;
    wfi->op = &pipe_writer_ops;
    wfi->private_data = pp;
-   pp->writer = 1;
+   pp->has_writer = 1;
 
    pipefd[0] = pcb_fd_install(reader_gfd);
    pipefd[1] = pcb_fd_install(writer_gfd);
@@ -217,16 +220,13 @@ static int32_t anon_pipe_release_reader(struct file *filp) {
    ASSERT(pp != NULL);
 
    bool destroy = false;
-   int ref = atomic_dec(&filp->count);
-   if (ref == 0) {
-      lock_acquire(&pp->lock);
-      pp->reader = 0;
-      ioq_close(&pp->q);
-      if (pp->writer == 0) {
-         destroy = true;
-      }
-      lock_release(&pp->lock);
+   lock_acquire(&pp->lock);
+   pp->has_reader = 0;
+   ioq_close(&pp->q);
+   if (pp->has_writer == 0) {
+      destroy = true;
    }
+   lock_release(&pp->lock);
    if (destroy) {
       release_pipe(pp);
    }
@@ -238,30 +238,27 @@ static int32_t anon_pipe_release_writer(struct file *filp) {
    ASSERT(pp != NULL);
 
    bool destroy = false;
-   int ref = atomic_dec(&filp->count);
-   if (ref == 0) {
-      lock_acquire(&pp->lock);
-      pp->writer = 0;
-      ioq_close(&pp->q);
-      if (pp->reader == 0) {
-         destroy = true;
-      }
-      lock_release(&pp->lock);
+   lock_acquire(&pp->lock);
+   pp->has_writer = 0;
+   ioq_close(&pp->q);
+   if (pp->has_reader == 0) {
+      destroy = true;
    }
+   lock_release(&pp->lock);
    if (destroy) {
       release_pipe(pp);
    }
    return 0;
 }
 
-static int32_t anon_pipe_lseek(struct file *filp, int32_t offset, int32_t whence) {
+static int32_t anon_pipe_lseek(struct file *filp UNUSED, int32_t offset UNUSED, int32_t whence UNUSED) {
    return -1;
 }
 
-static int32_t no_pipe_read(struct file *filp, char *buffer, uint32_t size) {
+static int32_t no_pipe_read(struct file *filp UNUSED, char *buffer UNUSED, uint32_t size UNUSED) {
    return -1;
 }
 
-static int32_t no_pipe_write(struct file *filp, const char *content, uint32_t size) {
+static int32_t no_pipe_write(struct file *filp UNUSED, const char *content UNUSED, uint32_t size UNUSED) {
    return -1;
 }

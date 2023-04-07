@@ -60,15 +60,15 @@ static void release_prog_resource(struct task_struct* release_thread) {
    uint8_t local_fd = 3;
    while(local_fd < MAX_FILES_OPEN_PER_PROC) {
       if (release_thread->fd_table[local_fd] != -1) {
-	 if (is_pipe(local_fd)) {
-	    uint32_t global_fd = fd_local2global(local_fd);
-	    if (--file_table[global_fd].fd_pos == 0) {
-	       mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
-	       file_table[global_fd].fd_inode = NULL;
-	    }
-	 } else {
+	//  if (is_pipe(local_fd)) {
+	//     uint32_t global_fd = fd_local2global(local_fd);
+	//     if (--file_table[global_fd].fd_pos == 0) {
+	//        mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
+	//        file_table[global_fd].fd_inode = NULL;
+	//     }
+	//  } else {
 	    sys_close(local_fd);
-	 }
+	//  }
       }
       local_fd++;
    }
