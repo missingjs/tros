@@ -69,16 +69,19 @@ void initialize_stdio(void) {
    init_file_struct(stdin);
    atomic_inc(&stdin->count);
    stdin->op = &stdin_file_ops;
+   stdin->fd_flag = O_RDONLY;
 
    struct file *stdout = &file_table[1];
    init_file_struct(stdout);
    atomic_inc(&stdout->count);
    stdout->op = &stdout_file_ops;
+   stdout->fd_flag = O_WRONLY;
 
    struct file *stderr = &file_table[2];
    init_file_struct(stderr);
    atomic_inc(&stderr->count);
    stderr->op = &stderr_file_ops;
+   stderr->fd_flag = O_WRONLY;
 }
 
 void release_free_slot_in_global(int32_t fd) {

@@ -187,3 +187,7 @@ void fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd) {
 void help(void) {
    _syscall0(SYS_HELP);
 }
+
+void msleep(uint32_t millis) {
+   _syscall1(SYS_MSLEEP, millis);
+}

@@ -1,5 +1,7 @@
 #include "device/console.h"
+#include "device/timer.h"
 #include "fs/fs.h"
+#include "kernel/interrupt.h"
 #include "kernel/memory.h"
 #include "kernel/print.h"
 #include "shell/pipe.h"
@@ -19,6 +21,10 @@ syscall syscall_table[syscall_nr];
 /* 返回当前任务的pid */
 uint32_t sys_getpid(void) {
    return running_thread()->pid;
+}
+
+void sys_msleep(uint32_t millis) {
+   mtime_sleep(millis);
 }
 
 /* 初始化系统调用 */
@@ -52,5 +58,6 @@ void syscall_init(void) {
    syscall_table[SYS_PIPE]	    = sys_pipe;
    syscall_table[SYS_FD_REDIRECT]   = sys_fd_redirect;
    syscall_table[SYS_HELP]	    = sys_help;
+   syscall_table[SYS_MSLEEP]   = sys_msleep;
    put_str("syscall_init done\n");
 }

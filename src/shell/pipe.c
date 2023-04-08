@@ -174,7 +174,7 @@ void sys_fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd) {
 static int32_t anon_pipe_read(struct file* filp, char* buffer, uint32_t size) {
    struct pipe_struct *pp = (struct pipe_struct *) filp->private_data;
    ASSERT(pp != NULL);
-   lock_acquire(&pp->lock);
+   // lock_acquire(&pp->lock);
 
    char *ptr = buffer;
    int n = 0;
@@ -188,7 +188,7 @@ static int32_t anon_pipe_read(struct file* filp, char* buffer, uint32_t size) {
       }
    }
 
-   lock_release(&pp->lock);
+   // lock_release(&pp->lock);
    return n;
 }
 

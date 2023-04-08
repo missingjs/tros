@@ -3,4 +3,5 @@
 #include "stdint.h"
 void timer_init(void);
 void mtime_sleep(uint32_t m_seconds);
+void sys_msleep(uint32_t millis);
 #endif

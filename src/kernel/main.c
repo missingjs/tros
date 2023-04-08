@@ -1,4 +1,5 @@
 #include "device/console.h"
+#include "device/timer.h"
 #include "fs/dir.h"
 #include "fs/fs.h"
 #include "kernel/init.h"
@@ -17,6 +18,7 @@
 #include "kernel/stdio-kernel.h"
 
 void init(void);
+void fork_test(void);
 
 int main(void) {
    put_str("I am kernel\n");
@@ -36,13 +38,59 @@ int main(void) {
 //      }
 //   }
 /*************    写入应用程序结束   *************/
-   // cls_screen();
+   cls_screen();
 //   console_put_str("[rabbit@localhost /]$ ");
-  thread_exit(running_thread(), true);
-   // while (1) {
-   //     thread_yield();
-   // }
+
+   // process_execute(fork_test, "fork_test");
+   // thread_exit(running_thread(), true);
+   while (1) {
+      thread_yield();
+   }
    return 0;
+}
+
+void fork_test(void) {
+   int pipefd[2], ret;
+   ret = pipe(pipefd);
+   if (ret < 0) {
+      printf("pipe failed\n");
+      exit(1);
+   }
+
+   pid_t pid = fork();
+   if (pid != 0) {
+      printf("I'm parent process: %d\n", getpid());
+      close(pipefd[0]);
+      char alphabet[] = "abcdefghijklmn";
+      while (1) {
+         for (int i = 0; i < (int)sizeof(alphabet) - 1; ++i) {
+            write(pipefd[1], &alphabet[i], 1);
+            // msleep(1000);
+         }
+      }
+      close(pipefd[1]);
+
+      int32_t status;
+      pid_t child_pid = wait(&status);
+      printf("[parent] child process %d exit with %d\n", child_pid, status);
+      char buf[10];
+      read(0, buf, 1);
+   } else {
+      printf("I'm child process: %d %x\n", getpid());
+      close(pipefd[1]);
+      char buf[1];
+      int count = 0;
+      while (1) {
+         ret = read(pipefd[0], buf, 1);
+         if (ret == 0) {
+            break;
+         }
+         ++count;
+         printf("[child] read %c %d\n", buf[0], count);
+      }
+      close(pipefd[0]);
+   }
+   exit(0);
 }
 
 /* init进程 */
@@ -62,7 +110,8 @@ void init(void)
    }
    else
    { // 子进程
-      my_shell();
+      // my_shell();
+      fork_test();
    }
    panic("init: should not be here");
 }
