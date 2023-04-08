@@ -57,4 +57,9 @@ void init_file_struct(struct file *filp);
 void finalize_file_struct(struct file *filp);
 void release_free_slot_in_global(int32_t fd);
 void initialize_stdio(void);
+
+int32_t no_read_fn(struct file *, char *, uint32_t);
+int32_t no_write_fn(struct file *, const char *, uint32_t);
+int32_t no_llseek_fn(struct file *, int32_t, int32_t);
+int32_t no_release_fn(struct file *);
 #endif

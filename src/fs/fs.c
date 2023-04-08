@@ -374,6 +374,7 @@ uint32_t fd_local2global(uint32_t local_fd) {
 
 /* 关闭文件描述符fd指向的文件,成功返回0,否则返回-1 */
 int32_t sys_close(int32_t fd) {
+   ASSERT(fd >= 0);
    int32_t ret = -1; // 返回值默认为-1,即失败
    if (fd > 2) {
       uint32_t global_fd = fd_local2global(fd);
@@ -399,8 +400,8 @@ int32_t sys_close(int32_t fd) {
    //    struct file *filp = &file_table[global_fd];
    //    ret = filp->op->release(filp);
    //  }
-      running_thread()->fd_table[fd] = -1; // 使该文件描述符位可用
    }
+   running_thread()->fd_table[fd] = -1; // 使该文件描述符位可用
    return ret;
 }
 
@@ -410,13 +411,13 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
       printk("sys_write: fd error\n");
       return -1;
    }
-   if (fd == stdout_no) {
-      // char tmp_buf[1024] = {0};
-      // memcpy(tmp_buf, buf, count);
-      // console_put_str(tmp_buf);
-      console_put_str_n((const char *) buf, count);
-      return count;
-   } else {
+   // if (fd == stdout_no) {
+   //    // char tmp_buf[1024] = {0};
+   //    // memcpy(tmp_buf, buf, count);
+   //    // console_put_str(tmp_buf);
+   //    console_put_str_n((const char *) buf, count);
+   //    return count;
+   // } else {
       uint32_t _fd = fd_local2global(fd);
       struct file* wr_file = &file_table[_fd];
       if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
@@ -425,7 +426,7 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
 	      console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
 	      return -1;
       }
-   }
+   // }
 }
 // int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
 //    if (fd < 0) {
@@ -460,25 +461,26 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
 
 /* 从文件描述符fd指向的文件中读取count个字节到buf,若成功则返回读出的字节数,到文件尾则返回-1 */
 int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
+   ASSERT(fd >= 0);
    ASSERT(buf != NULL);
    int32_t ret = -1;
    uint32_t global_fd = 0;
-   if (fd < 0 || fd == stdout_no || fd == stderr_no) {
-      printk("sys_read: fd error\n");
-   } else if (fd == stdin_no) {
-      char* buffer = buf;
-      uint32_t bytes_read = 0;
-      while (bytes_read < count) {
-         *buffer = ioq_getchar(&kbd_buf);
-         bytes_read++;
-         buffer++;
-      }
-      ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
-   } else {
+   // if (fd < 0 || fd == stdout_no || fd == stderr_no) {
+   //    printk("sys_read: fd error\n");
+   // } else if (fd == stdin_no) {
+   //    char* buffer = buf;
+   //    uint32_t bytes_read = 0;
+   //    while (bytes_read < count) {
+   //       *buffer = ioq_getchar(&kbd_buf);
+   //       bytes_read++;
+   //       buffer++;
+   //    }
+   //    ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
+   // } else {
       global_fd = fd_local2global(fd);
       struct file *filp = &file_table[global_fd];
       ret = filp->op->read(filp, buf, count);
-   }
+   // }
    return ret;
 }
 // int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
@@ -1009,4 +1011,6 @@ void filesys_init() {
    while (fd_idx < MAX_FILE_OPEN) {
       file_table[fd_idx++].fd_inode = NULL;
    }
+
+   initialize_stdio();
 }

@@ -20,21 +20,17 @@ static int32_t anon_pipe_read(struct file *, char *, uint32_t);
 static int32_t anon_pipe_write(struct file *, const char *, uint32_t);
 static int32_t anon_pipe_release_reader(struct file *);
 static int32_t anon_pipe_release_writer(struct file *);
-static int32_t anon_pipe_lseek(struct file *filp, int32_t offset, int32_t whence);
-
-static int32_t no_pipe_read(struct file *, char *, uint32_t);
-static int32_t no_pipe_write(struct file *, const char *, uint32_t);
 
 static struct file_operations pipe_reader_ops = {
-   .llseek  = anon_pipe_lseek,
+   .llseek  = no_llseek_fn,
    .read    = anon_pipe_read,
-   .write   = no_pipe_write,
+   .write   = no_write_fn,
    .release = anon_pipe_release_reader,
 };
 
 static struct file_operations pipe_writer_ops = {
-   .llseek  = anon_pipe_lseek,
-   .read    = no_pipe_read,
+   .llseek  = no_llseek_fn,
+   .read    = no_read_fn,
    .write   = anon_pipe_write,
    .release = anon_pipe_release_writer,
 };
@@ -249,16 +245,4 @@ static int32_t anon_pipe_release_writer(struct file *filp) {
       release_pipe(pp);
    }
    return 0;
-}
-
-static int32_t anon_pipe_lseek(struct file *filp UNUSED, int32_t offset UNUSED, int32_t whence UNUSED) {
-   return -1;
-}
-
-static int32_t no_pipe_read(struct file *filp UNUSED, char *buffer UNUSED, uint32_t size UNUSED) {
-   return -1;
-}
-
-static int32_t no_pipe_write(struct file *filp UNUSED, const char *content UNUSED, uint32_t size UNUSED) {
-   return -1;
 }

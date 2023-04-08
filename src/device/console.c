@@ -42,9 +42,11 @@ void console_put_int(uint32_t num) {
 }
 
 void console_put_str_n(const char *str, uint32_t size) {
+   console_acquire(); 
    const char *p = str, *end = str + size;
    while (p != end && *p) {
       put_char((uint8_t) *p++);
    }
+   console_release();
 }
 
