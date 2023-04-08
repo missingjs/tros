@@ -32,9 +32,9 @@ struct lock file_table_lock;
 
 static struct inode dummy_inode;
 
-struct inode *get_dummy_inode(void) {
-   return &dummy_inode;
-}
+// struct inode *get_dummy_inode(void) {
+//    return &dummy_inode;
+// }
 
 void release_free_slot_in_global(int32_t fd) {
    ASSERT(fd >= 0 && fd < MAX_FILE_OPEN);

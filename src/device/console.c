@@ -1,6 +1,6 @@
 #include "device/console.h"
-#include "lib/kernel/print.h"
-#include "lib/stdint.h"
+#include "kernel/print.h"
+#include "stdint.h"
 #include "thread/sync.h"
 #include "thread/thread.h"
 static struct lock console_lock;    // 控制台锁
@@ -39,5 +39,12 @@ void console_put_int(uint32_t num) {
    console_acquire(); 
    put_int(num); 
    console_release();
+}
+
+void console_put_str_n(const char *str, uint32_t size) {
+   const char *p = str, *end = str + size;
+   while (p != end && *p) {
+      put_char((uint8_t) *p++);
+   }
 }
 

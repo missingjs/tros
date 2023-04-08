@@ -411,9 +411,10 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
       return -1;
    }
    if (fd == stdout_no) {
-      char tmp_buf[1024] = {0};
-      memcpy(tmp_buf, buf, count);
-      console_put_str(tmp_buf);
+      // char tmp_buf[1024] = {0};
+      // memcpy(tmp_buf, buf, count);
+      // console_put_str(tmp_buf);
+      console_put_str_n((const char *) buf, count);
       return count;
    } else {
       uint32_t _fd = fd_local2global(fd);
