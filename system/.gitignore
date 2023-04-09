@@ -1,0 +1,6 @@
+*.o
+files.index
+package.bin
+size.bin
+crt/tros_crt.a
+rootfs
