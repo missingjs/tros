@@ -39,10 +39,44 @@ int main(void) {
 //   }
 /*************    写入应用程序结束   *************/
    cls_screen();
-//   console_put_str("[rabbit@localhost /]$ ");
 
-   // process_execute(fork_test, "fork_test");
-   // thread_exit(running_thread(), true);
+   struct disk* sda = &channels[0].devices[0];
+   void *buf = sys_malloc(SECTOR_SIZE);
+   int size_file_seek = 300;
+   ide_read(sda, size_file_seek, buf, 1);
+   int32_t index_file_size = *(int32_t*)buf;
+   int32_t pack_file_size = *(int32_t*)(buf + 4);
+   sys_free(buf);
+   // printk("index file size: %d, package file size: %d\n", index_file_size, pack_file_size);
+
+   int index_file_seek = 301;
+   int index_file_sec_count = DIV_ROUND_UP(index_file_size, SECTOR_SIZE);
+   buf = sys_malloc(SECTOR_SIZE * index_file_sec_count);
+   ide_read(sda, index_file_seek, buf, index_file_sec_count);
+   int32_t fd = sys_open("/_index", O_CREAT | O_RDWR);
+   if (fd < 0) {
+      panic("failed to open /_index");
+   }
+   if (sys_write(fd, buf, index_file_size) < 0) {
+      panic("failed to write /_index");
+   }
+   sys_close(fd);
+   sys_free(buf);
+
+   int pack_file_seek = 400;
+   int pack_file_sec_count = DIV_ROUND_UP(pack_file_size, SECTOR_SIZE);
+   buf = sys_malloc(SECTOR_SIZE * pack_file_sec_count);
+   ide_read(sda, pack_file_seek, buf, pack_file_sec_count);
+   fd = sys_open("/_pack", O_CREAT | O_RDWR);
+   if (fd < 0) {
+      panic("failed to open /_pack");
+   }
+   if (sys_write(fd, buf, pack_file_size) < 0) {
+      panic("failed to write /_pack");
+   }
+   sys_close(fd);
+   sys_free(buf);
+
    while (1) {
       thread_yield();
    }
@@ -110,8 +144,8 @@ void init(void)
    }
    else
    { // 子进程
-      // my_shell();
-      fork_test();
+      my_shell();
+      // fork_test();
    }
    panic("init: should not be here");
 }
