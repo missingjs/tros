@@ -27,6 +27,7 @@ def main():
     with open(size_file, 'wb') as szfp:
         index_size = Path(index_file).stat().st_size
         pack_size = Path(package_file).stat().st_size
+        print(f"index file size: {index_size}, package file size: {pack_size}")
         szfp.write(index_size.to_bytes(4, 'little'))
         szfp.write(pack_size.to_bytes(4, 'little'))
 

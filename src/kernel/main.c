@@ -50,12 +50,15 @@ int main(void) {
    int32_t index_file_size = *(int32_t*)buf;
    int32_t pack_file_size = *(int32_t*)(buf + 4);
    sys_free(buf);
-   // printk("index file size: %d, package file size: %d\n", index_file_size, pack_file_size);
+   printk("index file size: %d, package file size: %d\n", index_file_size, pack_file_size);
 
    int index_file_seek = 301;
    int index_file_sec_count = DIV_ROUND_UP(index_file_size, SECTOR_SIZE);
    void *idx_buf = sys_malloc(SECTOR_SIZE * index_file_sec_count);
    ide_read(sda, index_file_seek, idx_buf, index_file_sec_count);
+   void *idx_content = sys_malloc(index_file_size + 1);
+   memcpy(idx_content, idx_buf, index_file_size);
+   sys_free(idx_buf);
 
    int pack_file_seek = 400;
    int pack_file_sec_count = DIV_ROUND_UP(pack_file_size, SECTOR_SIZE);
@@ -64,7 +67,7 @@ int main(void) {
 
    char f_path[128];
    int f_offset, f_size;
-   const char *ptr = (const char *)idx_buf, *end = ptr + index_file_size;
+   const char *ptr = (const char *)idx_content, *end = ptr + index_file_size;
    while ((ptr = parse_index_line(ptr, end, f_path, &f_offset, &f_size))) {
       ASSERT(strlen(f_path) > 0);
       ASSERT(f_path[0] == '/');
@@ -82,7 +85,7 @@ int main(void) {
       sys_close(fd);
    }
 
-   sys_free(idx_buf);
+   sys_free(idx_content);
    sys_free(buf);
 
    while (1) {
@@ -159,6 +162,15 @@ void init(void)
 }
 
 static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size) {
+   // char buffer[128];
+   // memcpy(buffer, ptr, end-ptr);
+   // buffer[end-ptr] = 0;
+   // printk("%x, %x, line: [%s], %d\n", ptr, end, buffer, end-ptr);
+   // for (const char *p = ptr; p != end; ++p) {
+   //    printk("%d ", *p);
+   // }
+   // printk("\n");
+
    // parse path
    char *p = f_path;
    while (ptr != end && *ptr != ' ') {
