@@ -191,3 +191,7 @@ void help(void) {
 void msleep(uint32_t millis) {
    _syscall1(SYS_MSLEEP, millis);
 }
+
+void yield(void) {
+   _syscall0(SYS_YIELD);
+}

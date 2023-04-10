@@ -18,6 +18,8 @@
 typedef void* syscall;
 syscall syscall_table[syscall_nr];
 
+void sys_yield(void);
+
 /* 返回当前任务的pid */
 uint32_t sys_getpid(void) {
    return running_thread()->pid;
@@ -25,6 +27,10 @@ uint32_t sys_getpid(void) {
 
 void sys_msleep(uint32_t millis) {
    mtime_sleep(millis);
+}
+
+void sys_yield(void) {
+   thread_yield();
 }
 
 /* 初始化系统调用 */
@@ -59,5 +65,6 @@ void syscall_init(void) {
    syscall_table[SYS_FD_REDIRECT]   = sys_fd_redirect;
    syscall_table[SYS_HELP]	    = sys_help;
    syscall_table[SYS_MSLEEP]   = sys_msleep;
+   syscall_table[SYS_YIELD]    = sys_yield;
    put_str("syscall_init done\n");
 }

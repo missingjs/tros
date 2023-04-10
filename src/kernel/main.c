@@ -22,6 +22,7 @@
 void init(void);
 void fork_test(void);
 static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size);
+static bool init_done = false;
 
 int main(void) {
    put_str("I am kernel\n");
@@ -88,6 +89,9 @@ int main(void) {
    sys_free(idx_content);
    sys_free(buf);
 
+   cls_screen();
+   init_done = true;
+
    while (1) {
       thread_yield();
    }
@@ -141,6 +145,10 @@ void fork_test(void) {
 /* init进程 */
 void init(void)
 {
+   while (!init_done) {
+      yield();
+   }
+   
    uint32_t ret_pid = fork();
    if (ret_pid)
    { // 父进程
