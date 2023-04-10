@@ -19,8 +19,8 @@ ASFLAGS := -f elf32
 ASBINLIB := -I ./include
 
 LD := ld
-# LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main --strip-all
-LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main
+LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main --strip-all
+# LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main
 
 MBR_BIN := ./build/boot/mbr.bin
 LOADER_BIN := ./build/boot/loader.bin

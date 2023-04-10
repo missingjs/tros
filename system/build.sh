@@ -18,15 +18,15 @@ src/build-all.sh
 python3 pack.py
 
 size_file="size.bin"
-size_seek=300
+size_seek=500
 
 index_file="files.index"
 index_sec_cnt=$(ls -l $index_file | awk '{printf("%d", ($5+511)/512)}')
-index_seek=301
+index_seek=600
 
 pack_file="package.bin"
 pack_sec_cnt=$(ls -l $pack_file | awk '{printf("%d", ($5+511)/512)}')
-pack_seek=400
+pack_seek=700
 
 set -x
 dd if=$size_file of=$hdfile bs=512 count=1 seek=$size_seek conv=notrunc

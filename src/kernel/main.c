@@ -45,14 +45,14 @@ int main(void) {
 
    struct disk* sda = &channels[0].devices[0];
    void *buf = sys_malloc(SECTOR_SIZE);
-   int size_file_seek = 300;
+   int size_file_seek = 500;
    ide_read(sda, size_file_seek, buf, 1);
    int32_t index_file_size = *(int32_t*)buf;
    int32_t pack_file_size = *(int32_t*)(buf + 4);
    sys_free(buf);
    printk("index file size: %d, package file size: %d\n", index_file_size, pack_file_size);
 
-   int index_file_seek = 301;
+   int index_file_seek = 600;
    int index_file_sec_count = DIV_ROUND_UP(index_file_size, SECTOR_SIZE);
    void *idx_buf = sys_malloc(SECTOR_SIZE * index_file_sec_count);
    ide_read(sda, index_file_seek, idx_buf, index_file_sec_count);
@@ -60,7 +60,7 @@ int main(void) {
    memcpy(idx_content, idx_buf, index_file_size);
    sys_free(idx_buf);
 
-   int pack_file_seek = 400;
+   int pack_file_seek = 700;
    int pack_file_sec_count = DIV_ROUND_UP(pack_file_size, SECTOR_SIZE);
    buf = sys_malloc(SECTOR_SIZE * pack_file_sec_count);
    ide_read(sda, pack_file_seek, buf, pack_file_sec_count);
