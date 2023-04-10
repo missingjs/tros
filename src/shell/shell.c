@@ -9,8 +9,6 @@
 #include "user/assert.h"
 #include "user/syscall.h"
 
-#define MAX_ARG_NR 16       // 加上命令名外,最多支持15个参数
-
 /* 存储输入的命令 */
 static char cmd_line[MAX_PATH_LEN] = {0};
 char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲

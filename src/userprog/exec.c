@@ -1,7 +1,9 @@
 #include "fs/fs.h"
+#include "kernel/debug.h"
 #include "kernel/global.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
+#include "shell/shell.h"
 #include "string.h"
 #include "thread/thread.h"    
 #include "userprog/exec.h"
@@ -166,13 +168,48 @@ int32_t sys_execv(const char* path, const char* argv[]) {
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
 
+   // setup argv
+   void *ptr = (void*) 0xc0000000;
+   const char *user_argv[MAX_ARG_NR] = {NULL};
+   ASSERT(argc > 0);
+   for (int i = (int) argc - 1; i >= 0; --i) {
+       uint32_t len = strlen(argv[i]);
+       char *s = ptr - len - 1;
+       strcpy(s, argv[i]);
+       user_argv[i] = (const char *)s;
+       ptr = s;
+   }
+
+   uint32_t vsize = argc * sizeof(const char *);
+   void* argv_start = ptr - vsize;
+   memcpy(argv_start, user_argv, vsize);
+   // char *ptr = (char*)(uint32_t)0xc0000000;
+   // for (uint32_t i = 0; i < argc; ++i) {
+   //     ptr -= (strlen(argv[i]) + 1);
+   // }
+   // char *ap = ptr;  // start address of all argv
+
+   // ptr -= argc * sizeof(const char *);  // now ptr points to argv[]
+   // void *user_esp = ptr;
+
+   // char **vp = (char **)ptr;
+   // for (uint32_t i = 0; i < argc; ++i) {
+   //     *vp = ap;
+   //     strcpy(ap, argv[i]);
+   //     ap += strlen(argv[i]) + 1;
+   //     vp += 1;
+   // }
+
    struct intr_stack* intr_0_stack = (struct intr_stack*)((uint32_t)cur + PG_SIZE - sizeof(struct intr_stack));
    /* 参数传递给用户进程 */
-   intr_0_stack->ebx = (int32_t)argv;
+   // intr_0_stack->ebx = (int32_t)argv;
+   intr_0_stack->ebx = (uint32_t)argv_start;
    intr_0_stack->ecx = argc;
    intr_0_stack->eip = (void*)entry_point;
+   // user stack below the array argv[]
+   intr_0_stack->esp = argv_start;
    /* 使新用户进程的栈地址为最高用户空间地址 */
-   intr_0_stack->esp = (void*)0xc0000000;
+   // intr_0_stack->esp = (void*)0xc0000000;
 
    /* exec不同于fork,为使新进程更快被执行,直接从中断返回 */
    asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (intr_0_stack) : "memory");
