@@ -349,14 +349,13 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
 
    switch (flags & O_CREAT) {
       case O_CREAT:
-	 printk("creating file\n");
-	 fd = file_create(searched_record.parent_dir, (strrchr(pathname, '/') + 1), flags);
-	 dir_close(searched_record.parent_dir);
-	 break;
+         fd = file_create(searched_record.parent_dir, (strrchr(pathname, '/') + 1), flags);
+         dir_close(searched_record.parent_dir);
+         break;
       default:
    /* 其余情况均为打开已存在文件:
     * O_RDONLY,O_WRONLY,O_RDWR */
-	 fd = file_open(inode_no, flags);
+         fd = file_open(inode_no, flags);
    }
 
    /* 此fd是指任务pcb->fd_table数组中的元素下标,

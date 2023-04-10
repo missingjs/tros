@@ -2,12 +2,14 @@
 #include "device/timer.h"
 #include "fs/dir.h"
 #include "fs/fs.h"
+#include "kernel/debug.h"
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
 #include "kernel/print.h"
 #include "shell/shell.h"
 #include "stdio.h"
+#include "string.h"
 #include "thread/thread.h"
 #include "user/assert.h"
 #include "user/syscall.h"
@@ -19,6 +21,7 @@
 
 void init(void);
 void fork_test(void);
+static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size);
 
 int main(void) {
    put_str("I am kernel\n");
@@ -51,30 +54,35 @@ int main(void) {
 
    int index_file_seek = 301;
    int index_file_sec_count = DIV_ROUND_UP(index_file_size, SECTOR_SIZE);
-   buf = sys_malloc(SECTOR_SIZE * index_file_sec_count);
-   ide_read(sda, index_file_seek, buf, index_file_sec_count);
-   int32_t fd = sys_open("/_index", O_CREAT | O_RDWR);
-   if (fd < 0) {
-      panic("failed to open /_index");
-   }
-   if (sys_write(fd, buf, index_file_size) < 0) {
-      panic("failed to write /_index");
-   }
-   sys_close(fd);
-   sys_free(buf);
+   void *idx_buf = sys_malloc(SECTOR_SIZE * index_file_sec_count);
+   ide_read(sda, index_file_seek, idx_buf, index_file_sec_count);
 
    int pack_file_seek = 400;
    int pack_file_sec_count = DIV_ROUND_UP(pack_file_size, SECTOR_SIZE);
    buf = sys_malloc(SECTOR_SIZE * pack_file_sec_count);
    ide_read(sda, pack_file_seek, buf, pack_file_sec_count);
-   fd = sys_open("/_pack", O_CREAT | O_RDWR);
-   if (fd < 0) {
-      panic("failed to open /_pack");
+
+   char f_path[128];
+   int f_offset, f_size;
+   const char *ptr = (const char *)idx_buf, *end = ptr + index_file_size;
+   while ((ptr = parse_index_line(ptr, end, f_path, &f_offset, &f_size))) {
+      ASSERT(strlen(f_path) > 0);
+      ASSERT(f_path[0] == '/');
+      ASSERT(f_offset >= 0);
+      ASSERT(f_size >= 0);
+      printk("%s %d %d\n", f_path, f_offset, f_size);
+      sys_unlink(f_path);  // It doesn't matter if f_path not exist
+      int32_t fd = sys_open(f_path, O_CREAT | O_RDWR);
+      if (fd < 0) {
+         panic("failed to create/open system file");
+      }
+      if (sys_write(fd, buf + f_offset, (uint32_t)f_size) < 0) {
+         panic("failed to write system file");
+      }
+      sys_close(fd);
    }
-   if (sys_write(fd, buf, pack_file_size) < 0) {
-      panic("failed to write /_pack");
-   }
-   sys_close(fd);
+
+   sys_free(idx_buf);
    sys_free(buf);
 
    while (1) {
@@ -148,4 +156,43 @@ void init(void)
       // fork_test();
    }
    panic("init: should not be here");
+}
+
+static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size) {
+   // parse path
+   char *p = f_path;
+   while (ptr != end && *ptr != ' ') {
+      *p++ = *ptr++;
+   }
+   if (ptr == end) {
+      return NULL;
+   }
+   *p = 0;
+   ++ptr;  // skip ' '
+
+   // parse offset
+   int offset = 0;
+   while (ptr != end && *ptr != ' ') {
+      int val = *ptr - '0';
+      offset = offset * 10 + val;
+      ++ptr;
+   }
+   if (ptr == end) {
+      return NULL;
+   }
+   *f_offset = offset;
+   ++ptr;  // skip ' '
+
+   // parse size
+   int size = 0;
+   while (ptr != end && *ptr != '\n') {
+      int val = *ptr - '0';
+      size = size * 10 + val;
+      ++ptr;
+   }
+   if (ptr == end) {
+      return NULL;
+   }
+   *f_size = size;
+   return ptr + 1;
 }

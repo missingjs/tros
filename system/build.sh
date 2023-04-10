@@ -11,6 +11,8 @@ cd $self_dir
 
 set -e
 
+crt/build.sh
+
 src/build-all.sh
 
 python3 pack.py
