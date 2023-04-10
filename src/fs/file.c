@@ -64,7 +64,7 @@ static struct inode dummy_inode;
 // struct inode *get_dummy_inode(void) {
 //    return &dummy_inode;
 // }
-void initialize_stdio(void) {
+static void initialize_stdio(void) {
    struct file *stdin = &file_table[0];
    init_file_struct(stdin);
    atomic_inc(&stdin->count);
@@ -82,6 +82,16 @@ void initialize_stdio(void) {
    atomic_inc(&stderr->count);
    stderr->op = &stderr_file_ops;
    stderr->fd_flag = O_WRONLY;
+}
+
+void file_table_init(void) {
+   /* 初始化文件表 */
+   lock_init(&file_table_lock);
+   uint32_t fd_idx = 0;
+   while (fd_idx < MAX_FILE_OPEN) {
+      file_table[fd_idx++].fd_inode = NULL;
+   }
+   initialize_stdio();
 }
 
 void release_free_slot_in_global(int32_t fd) {

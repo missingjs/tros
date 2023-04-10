@@ -2,6 +2,7 @@
 #include "device/ide.h"
 #include "device/keyboard.h"
 #include "device/timer.h"
+#include "fs/file.h"
 #include "fs/fs.h"
 #include "kernel/init.h"
 #include "kernel/interrupt.h"
@@ -22,6 +23,7 @@ void init_all() {
    keyboard_init();  // 键盘初始化
    tss_init();       // tss初始化
    syscall_init();   // 初始化系统调用
+   file_table_init();   // init kernel file table
    intr_enable();    // 后面的ide_init需要打开中断
    ide_init();	     // 初始化硬盘
    filesys_init();   // 初始化文件系统

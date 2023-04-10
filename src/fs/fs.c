@@ -406,7 +406,6 @@ int32_t sys_close(int32_t fd) {
 
 /* 将buf中连续count个字节写入文件描述符fd,成功则返回写入的字节数,失败返回-1 */
 int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
-   printk("sys_write: fd = %d\n", fd);
    if (fd < 0) {
       printk("sys_write: fd error\n");
       return -1;
@@ -1005,12 +1004,12 @@ void filesys_init() {
    /* 将当前分区的根目录打开 */
    open_root_dir(cur_part);
 
-   /* 初始化文件表 */
-   lock_init(&file_table_lock);
-   uint32_t fd_idx = 0;
-   while (fd_idx < MAX_FILE_OPEN) {
-      file_table[fd_idx++].fd_inode = NULL;
-   }
+   // /* 初始化文件表 */
+   // lock_init(&file_table_lock);
+   // uint32_t fd_idx = 0;
+   // while (fd_idx < MAX_FILE_OPEN) {
+   //    file_table[fd_idx++].fd_inode = NULL;
+   // }
 
-   initialize_stdio();
+   // initialize_stdio();
 }

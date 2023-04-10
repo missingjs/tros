@@ -56,7 +56,9 @@ int32_t file_open(uint32_t inode_no, uint8_t flag);
 void init_file_struct(struct file *filp);
 void finalize_file_struct(struct file *filp);
 void release_free_slot_in_global(int32_t fd);
-void initialize_stdio(void);
+// void initialize_stdio(void);
+
+void file_table_init(void);
 
 int32_t no_read_fn(struct file *, char *, uint32_t);
 int32_t no_write_fn(struct file *, const char *, uint32_t);

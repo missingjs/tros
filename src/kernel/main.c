@@ -41,7 +41,7 @@ int main(void) {
 //      }
 //   }
 /*************    写入应用程序结束   *************/
-   cls_screen();
+   // cls_screen();
 
    struct disk* sda = &channels[0].devices[0];
    void *buf = sys_malloc(SECTOR_SIZE);
