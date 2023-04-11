@@ -17,7 +17,7 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 char cwd_cache[MAX_PATH_LEN] = {0};
 
 static void process_piped_commands_old(char *command_line);
-static void execute_piped_commands(const char *command_line);
+static void execute_piped_commands(char *command_line);
 
 /* 输出提示符 */
 void print_prompt(void) {
@@ -209,7 +209,8 @@ void my_shell(void) {
       /* 针对管道的处理 */
       char *pipe_symbol = strchr(cmd_line, '|');
       if (pipe_symbol) {
-         process_piped_commands_old(cmd_line);
+         // process_piped_commands_old(cmd_line);
+         execute_piped_commands(cmd_line);
       } else { // 一般无管道操作的命令
          argc = -1;
          argc = cmd_parse(cmd_line, argv, ' ');
@@ -223,8 +224,60 @@ void my_shell(void) {
    panic("my_shell: should not be here");
 }
 
-static void execute_piped_commands(const char *command_line) {
-   
+static void execute_piped_commands(char *command_line) {
+   int fd1[2], fd2[2];
+   int *prev = fd1, *next = fd2, *tmp;
+   pid_t pid;
+
+   int cmd_index = 0;
+   char *each_cmd = command_line;
+   char *pipe_symbol;
+
+   while ((pipe_symbol = strchr(each_cmd, '|'))) {
+      *pipe_symbol = 0;
+      argc = cmd_parse(each_cmd, argv, ' ');
+      make_clear_abs_path(argv[0], final_path);
+      argv[0] = final_path;
+
+      pipe(next);
+      if ((pid = fork()) == 0) {
+         if (cmd_index > 0) {
+            fd_redirect(0, prev[0]);
+            close(prev[0]);
+            close(prev[1]);
+         }
+         fd_redirect(1, next[1]);
+         close(next[0]);
+         close(next[1]);
+         execv(argv[0], argv);
+      } else if (cmd_index > 0) {
+         close(prev[0]);
+         close(prev[1]);
+      }
+      tmp = prev;
+      prev = next;
+      next = tmp;
+      ++cmd_index;
+      each_cmd = pipe_symbol + 1;
+   }
+
+   assert(cmd_index > 0);
+   argc = cmd_parse(each_cmd, argv, ' ');
+   make_clear_abs_path(argv[0], final_path);
+   argv[0] = final_path;
+   if ((pid = fork()) == 0) {
+      fd_redirect(0, prev[0]);
+      close(prev[0]);
+      close(prev[1]);
+      execv(argv[0], argv);
+   } else {
+      close(prev[0]);
+      close(prev[1]);
+   }
+
+   int32_t st;
+   while ((pid = wait(&st)) != -1)
+      ;;
 }
 
 static void process_piped_commands_old(char *command_line)
