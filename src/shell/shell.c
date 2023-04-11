@@ -17,6 +17,7 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 char cwd_cache[MAX_PATH_LEN] = {0};
 
 static void process_piped_commands_old(char *command_line);
+static void execute_piped_commands(const char *command_line);
 
 /* 输出提示符 */
 void print_prompt(void) {
@@ -208,19 +209,22 @@ void my_shell(void) {
       /* 针对管道的处理 */
       char *pipe_symbol = strchr(cmd_line, '|');
       if (pipe_symbol) {
-     process_piped_commands_old(cmd_line);
-      }
-      else { // 一般无管道操作的命令
-     argc = -1;
-     argc = cmd_parse(cmd_line, argv, ' ');
-     if (argc == -1) {
-        printf("num of arguments exceed %d\n", MAX_ARG_NR);
-        continue;
-     }
-     cmd_execute(argc, argv);
+         process_piped_commands_old(cmd_line);
+      } else { // 一般无管道操作的命令
+         argc = -1;
+         argc = cmd_parse(cmd_line, argv, ' ');
+         if (argc == -1) {
+            printf("num of arguments exceed %d\n", MAX_ARG_NR);
+            continue;
+         }
+         cmd_execute(argc, argv);
       }
    }
    panic("my_shell: should not be here");
+}
+
+static void execute_piped_commands(const char *command_line) {
+   
 }
 
 static void process_piped_commands_old(char *command_line)
