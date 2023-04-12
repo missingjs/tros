@@ -98,13 +98,14 @@ struct inode* inode_open(struct partition* part, uint32_t inode_no) {
 /* 为使通过sys_malloc创建的新inode被所有任务共享,
  * 需要将inode置于内核空间,故需要临时
  * 将cur_pbc->pgdir置为NULL */
-   struct task_struct* cur = running_thread();
-   uint32_t* cur_pagedir_bak = cur->pgdir;
-   cur->pgdir = NULL;
-   /* 以上三行代码完成后下面分配的内存将位于内核区 */
-   inode_found = (struct inode*)sys_malloc(sizeof(struct inode));
-   /* 恢复pgdir */
-   cur->pgdir = cur_pagedir_bak;
+   // struct task_struct* cur = running_thread();
+   // uint32_t* cur_pagedir_bak = cur->pgdir;
+   // cur->pgdir = NULL;
+   // /* 以上三行代码完成后下面分配的内存将位于内核区 */
+   // inode_found = (struct inode*)sys_malloc(sizeof(struct inode));
+   // /* 恢复pgdir */
+   // cur->pgdir = cur_pagedir_bak;
+   inode_found = kmalloc(sizeof(struct inode));
 
    char* inode_buf;
    if (inode_pos.two_sec) {	// 考虑跨扇区的情况

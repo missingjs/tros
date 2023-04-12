@@ -148,7 +148,8 @@ static bool busy_wait(struct disk* hd) {
 
 static void dump_arena(const char *mark, void *ptr) {
    void *s = (void*)((uint32_t)ptr & 0xfffff000);
-   printk("%s, addr=%x desc=%x cnt=%d large=%d\n", mark, ptr, *(uint32_t*)s, *(uint32_t*)(s+4), *(uint32_t*)(s+8));
+   printk("%s, vaddr=%x paddr=%x desc=%x cnt=%d large=%d\n", 
+         mark, ptr, addr_v2p(ptr), *(uint32_t*)s, *(uint32_t*)(s+4), *(uint32_t*)(s+8));
 }
 
 /* 从硬盘读取sec_cnt个扇区到buf */
@@ -160,6 +161,7 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   //
    /* 1 先选择操作的硬盘 */
    select_disk(hd);
 
+// dump_arena("select_disk", buf);
    uint32_t secs_op;		 // 每次操作的扇区数
    uint32_t secs_done = 0;	 // 已完成的扇区数
    while(secs_done < sec_cnt) {
@@ -178,9 +180,11 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   //
    /*********************   阻塞自己的时机  ***********************
       在硬盘已经开始工作(开始在内部读数据或写数据)后才能阻塞自己,现在硬盘已经开始忙了,
       将自己阻塞,等待硬盘完成读操作后通过中断处理程序唤醒自己*/
-dump_arena("before sema_down", buf);
+// dump_arena("before sema_down", buf);
+// printk("buf[0]=%x, buf[1]=%x\n", *(uint32_t*)buf, *(uint32_t*)(buf+4));
       sema_down(&hd->my_channel->disk_done);
-dump_arena("after sema_down", buf);
+// dump_arena("after sema_down", buf);
+// printk("buf[0]=%x, buf[1]=%x\n", *(uint32_t*)buf, *(uint32_t*)(buf+4));
    /*************************************************************/
 
    /* 4 检测硬盘状态是否可读 */

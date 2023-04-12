@@ -150,6 +150,9 @@ void* malloc_page(enum pool_flags pf, uint32_t pg_cnt) {
       3通过page_table_add将以上两步得到的虚拟地址和物理地址在页表中完成映射
 ***************************************************************/
    void* vaddr_start = vaddr_get(pf, pg_cnt);
+// if (sys_getpid() == 6) {
+//    printk("alloc vaddr %x\n", vaddr_start);
+// }
    if (vaddr_start == NULL) {
       return NULL;
    }
@@ -159,6 +162,12 @@ void* malloc_page(enum pool_flags pf, uint32_t pg_cnt) {
 /* 因为虚拟地址是连续的,但物理地址可以是不连续的,所以逐个做映射*/
    while (cnt-- > 0) {
       void* page_phyaddr = palloc(mem_pool);
+if (((uint32_t)page_phyaddr) == 0x1102000) {
+   printk("%x alloced by %d\n", page_phyaddr, sys_getpid());
+}
+// if (sys_getpid() == 6) {
+//    printk("phy addr %x alloc\n", page_phyaddr);
+// }
 
 /* 失败时要将曾经已申请的虚拟地址和物理页全部回滚，
  * 在将来完成内存回收时再补充 */
@@ -378,6 +387,10 @@ void* sys_malloc_kernel(uint32_t size) {
    return block;
 }
 
+void* kmalloc(uint32_t size) {
+   return sys_malloc_kernel(size);
+}
+
 /* 将物理地址pg_phy_addr回收到物理内存池 */
 void pfree(uint32_t pg_phy_addr) {
    struct pool* mem_pool;
@@ -390,6 +403,9 @@ void pfree(uint32_t pg_phy_addr) {
       bit_idx = (pg_phy_addr - kernel_pool.phy_addr_start) / PG_SIZE;
    }
    bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);	 // 将位图中该位清0
+if (pg_phy_addr == 0x1102000) {
+   printk("%x freed by %d\n", pg_phy_addr, sys_getpid());
+}
 }
 
 /* 去掉页表中虚拟地址vaddr的映射,只去掉vaddr对应的pte */
@@ -529,6 +545,10 @@ void sys_free_kernel(void* ptr) {
    cur->pgdir = NULL;
    sys_free(ptr);		         // 释放inode的内核空间
    cur->pgdir = cur_pagedir_bak;
+}
+
+void kfree(void* ptr) {
+   sys_free_kernel(ptr);
 }
 
 /* 初始化内存池 */

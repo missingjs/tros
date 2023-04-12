@@ -778,38 +778,44 @@ static uint32_t get_parent_dir_inode_nr(uint32_t child_inode_nr, void* io_buf) {
 /* 在inode编号为p_inode_nr的目录中查找inode编号为c_inode_nr的子目录的名字,
  * 将名字存入缓冲区path.成功返回0,失败返-1 */
 static int get_child_dir_name(uint32_t p_inode_nr, uint32_t c_inode_nr, char* path, void* io_buf) {
-   struct inode* parent_dir_inode = inode_open(cur_part, p_inode_nr);
+   struct inode *parent_dir_inode = inode_open(cur_part, p_inode_nr);
    /* 填充all_blocks,将该目录的所占扇区地址全部写入all_blocks */
    uint8_t block_idx = 0;
    uint32_t all_blocks[140] = {0}, block_cnt = 12;
-   while (block_idx < 12) {
+   while (block_idx < 12)
+   {
       all_blocks[block_idx] = parent_dir_inode->i_sectors[block_idx];
       block_idx++;
    }
-   if (parent_dir_inode->i_sectors[12]) {	// 若包含了一级间接块表,将共读入all_blocks.
+   if (parent_dir_inode->i_sectors[12])
+   { // 若包含了一级间接块表,将共读入all_blocks.
       ide_read(cur_part->my_disk, parent_dir_inode->i_sectors[12], all_blocks + 12, 1);
       block_cnt = 140;
    }
    inode_close(parent_dir_inode);
 
-   struct dir_entry* dir_e = (struct dir_entry*)io_buf;
+   struct dir_entry *dir_e = (struct dir_entry *)io_buf;
    uint32_t dir_entry_size = cur_part->sb->dir_entry_size;
    uint32_t dir_entrys_per_sec = (512 / dir_entry_size);
    block_idx = 0;
-  /* 遍历所有块 */
-   while(block_idx < block_cnt) {
-      if(all_blocks[block_idx]) {      // 如果相应块不为空则读入相应块
-	 ide_read(cur_part->my_disk, all_blocks[block_idx], io_buf, 1);
-	 uint8_t dir_e_idx = 0;
-	 /* 遍历每个目录项 */
-	 while(dir_e_idx < dir_entrys_per_sec) {
-	    if ((dir_e + dir_e_idx)->i_no == c_inode_nr) {
-	       strcat(path, "/");
-	       strcat(path, (dir_e + dir_e_idx)->filename);
-	       return 0;
-	    }
-	    dir_e_idx++;
-	 }
+   /* 遍历所有块 */
+   while (block_idx < block_cnt)
+   {
+      if (all_blocks[block_idx])
+      { // 如果相应块不为空则读入相应块
+         ide_read(cur_part->my_disk, all_blocks[block_idx], io_buf, 1);
+         uint8_t dir_e_idx = 0;
+         /* 遍历每个目录项 */
+         while (dir_e_idx < dir_entrys_per_sec)
+         {
+            if ((dir_e + dir_e_idx)->i_no == c_inode_nr)
+            {
+               strcat(path, "/");
+               strcat(path, (dir_e + dir_e_idx)->filename);
+               return 0;
+            }
+            dir_e_idx++;
+         }
       }
       block_idx++;
    }
@@ -824,6 +830,7 @@ char* sys_getcwd(char* buf, uint32_t size) {
    系统调用getcwd中要为用户进程通过malloc分配内存 */
    ASSERT(buf != NULL);
    void* io_buf = sys_malloc(SECTOR_SIZE);
+// printk("pid=%d, io_buf: %x %x\n", sys_getpid(), io_buf, addr_v2p(io_buf));
    if (io_buf == NULL) {
       return NULL;
    }
