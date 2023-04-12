@@ -56,9 +56,9 @@ void make_clear_abs_path(char* path, char* final_path) {
    if (path[0] != '/') {      // 若输入的不是绝对路径,就拼接成绝对路径
       memset(abs_path, 0, MAX_PATH_LEN);
       if (getcwd(abs_path, MAX_PATH_LEN) != NULL) {
-	 if (!((abs_path[0] == '/') && (abs_path[1] == 0))) {	     // 若abs_path表示的当前目录不是根目录/
-	    strcat(abs_path, "/");
-	 }
+         if (!((abs_path[0] == '/') && (abs_path[1] == 0))) {	     // 若abs_path表示的当前目录不是根目录/
+            strcat(abs_path, "/");
+         }
       }
    }
    strcat(abs_path, path);

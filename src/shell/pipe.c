@@ -49,12 +49,6 @@ static void release_pipe(struct pipe_struct *p) {
    mfree_page(PF_KERNEL, p, 1);
 }
 
-// /* 判断文件描述符local_fd是否是管道 */
-// bool is_pipe(uint32_t local_fd) {
-//    uint32_t global_fd = fd_local2global(local_fd);
-//    return file_table[global_fd].fd_flag == PIPE_FLAG;
-// }
-
 /* 创建管道,成功返回0,失败返回-1 */
 int32_t sys_pipe(int32_t pipefd[2]) {
    struct pipe_struct *pp = create_pipe();
@@ -162,6 +156,13 @@ int32_t sys_pipe(int32_t pipefd[2]) {
 /* 将文件描述符old_local_fd重定向为new_local_fd */
 void sys_fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd) {
    struct task_struct* cur = running_thread();
+   uint32_t old_gfd = fd_local2global(old_local_fd);
+   uint32_t new_gfd = fd_local2global(new_local_fd);
+   struct file *old_filp = &file_table[old_gfd];
+   struct file *new_filp = &file_table[new_gfd];
+   ASSERT(old_filp != NULL);
+   ASSERT(new_filp != NULL);
+
    /* 针对恢复标准描述符 */
    if (new_local_fd < 3) {
       cur->fd_table[old_local_fd] = new_local_fd;
@@ -169,6 +170,9 @@ void sys_fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd) {
       uint32_t new_global_fd = cur->fd_table[new_local_fd];
       cur->fd_table[old_local_fd] = new_global_fd;
    }
+
+   atomic_dec(&old_filp->count);
+   atomic_inc(&new_filp->count);
 }
 
 static int32_t anon_pipe_read(struct file* filp, char* buffer, uint32_t size) {
@@ -194,11 +198,11 @@ static int32_t anon_pipe_read(struct file* filp, char* buffer, uint32_t size) {
 
 static int32_t anon_pipe_write(struct file* filp, const char* content, uint32_t size) {
    struct pipe_struct *pp = (struct pipe_struct *) filp->private_data;
-   ASSERT(pp != NULL);
-   lock_acquire(&pp->lock);
-
    const char *ptr = content;
    const char *end = ptr + size;
+
+   ASSERT(pp != NULL);
+   lock_acquire(&pp->lock);
    while (ptr != end) {
       if (ioq_putchar(&pp->q, *ptr)) {
          ++ptr;
@@ -206,7 +210,6 @@ static int32_t anon_pipe_write(struct file* filp, const char* content, uint32_t 
          break;
       }
    }
-
    lock_release(&pp->lock);
    return ptr - content;
 }

@@ -289,70 +289,83 @@ void* sys_malloc(uint32_t size) {
    struct arena* a;
    struct mem_block* b;
    lock_acquire(&mem_pool->lock);
-/* 超过最大内存块1024, 就分配页框 */
-   if (size > 1024) {
-      uint32_t page_cnt = DIV_ROUND_UP(size + sizeof(struct arena), PG_SIZE);    // 向上取整需要的页框数
+
+   /* 超过最大内存块1024, 就分配页框 */
+   if (size > 1024)
+   {
+      uint32_t page_cnt = DIV_ROUND_UP(size + sizeof(struct arena), PG_SIZE); // 向上取整需要的页框数
 
       a = malloc_page(PF, page_cnt);
 
-      if (a != NULL) {
-	 memset(a, 0, page_cnt * PG_SIZE);	 // 将分配的内存清0
+      if (a != NULL)
+      {
+         memset(a, 0, page_cnt * PG_SIZE); // 将分配的内存清0
 
-      /* 对于分配的大块页框,将desc置为NULL, cnt置为页框数,large置为true */
-	 a->desc = NULL;
-	 a->cnt = page_cnt;
-	 a->large = true;
-	 lock_release(&mem_pool->lock);
-	 return (void*)(a + 1);		 // 跨过arena大小，把剩下的内存返回
-      } else {
-	 lock_release(&mem_pool->lock);
-	 return NULL;
+         /* 对于分配的大块页框,将desc置为NULL, cnt置为页框数,large置为true */
+         a->desc = NULL;
+         a->cnt = page_cnt;
+         a->large = true;
+         lock_release(&mem_pool->lock);
+         return (void *)(a + 1); // 跨过arena大小，把剩下的内存返回
       }
-   } else {    // 若申请的内存小于等于1024,可在各种规格的mem_block_desc中去适配
+      else
+      {
+         lock_release(&mem_pool->lock);
+         return NULL;
+      }
+   }
+   else
+   { // 若申请的内存小于等于1024,可在各种规格的mem_block_desc中去适配
       uint8_t desc_idx;
 
       /* 从内存块描述符中匹配合适的内存块规格 */
-      for (desc_idx = 0; desc_idx < DESC_CNT; desc_idx++) {
-	 if (size <= descs[desc_idx].block_size) {  // 从小往大后,找到后退出
-	    break;
-	 }
+      for (desc_idx = 0; desc_idx < DESC_CNT; desc_idx++)
+      {
+         if (size <= descs[desc_idx].block_size)
+         { // 从小往大后,找到后退出
+            break;
+         }
       }
 
-   /* 若mem_block_desc的free_list中已经没有可用的mem_block,
-    * 就创建新的arena提供mem_block */
-      if (list_empty(&descs[desc_idx].free_list)) {
-	 a = malloc_page(PF, 1);       // 分配1页框做为arena
-	 if (a == NULL) {
-	    lock_release(&mem_pool->lock);
-	    return NULL;
-	 }
-	 memset(a, 0, PG_SIZE);
+      /* 若mem_block_desc的free_list中已经没有可用的mem_block,
+       * 就创建新的arena提供mem_block */
+      if (list_empty(&descs[desc_idx].free_list))
+      {
+         a = malloc_page(PF, 1); // 分配1页框做为arena
+         if (a == NULL)
+         {
+            lock_release(&mem_pool->lock);
+            return NULL;
+         }
+         memset(a, 0, PG_SIZE);
 
-    /* 对于分配的小块内存,将desc置为相应内存块描述符,
-     * cnt置为此arena可用的内存块数,large置为false */
-	 a->desc = &descs[desc_idx];
-	 a->large = false;
-	 a->cnt = descs[desc_idx].blocks_per_arena;
-	 uint32_t block_idx;
+         /* 对于分配的小块内存,将desc置为相应内存块描述符,
+          * cnt置为此arena可用的内存块数,large置为false */
+         a->desc = &descs[desc_idx];
+         a->large = false;
+         a->cnt = descs[desc_idx].blocks_per_arena;
+         uint32_t block_idx;
 
-	 enum intr_status old_status = intr_disable();
+// printk("pid=%d a=%x cnt=%d paddr=%x arena cleared\n", sys_getpid(), a, a->cnt, addr_v2p(a));
+         enum intr_status old_status = intr_disable();
 
-	 /* 开始将arena拆分成内存块,并添加到内存块描述符的free_list中 */
-	 for (block_idx = 0; block_idx < descs[desc_idx].blocks_per_arena; block_idx++) {
-	    b = arena2block(a, block_idx);
-	    ASSERT(!elem_find(&a->desc->free_list, &b->free_elem));
-	    list_append(&a->desc->free_list, &b->free_elem);
-	 }
-	 intr_set_status(old_status);
+         /* 开始将arena拆分成内存块,并添加到内存块描述符的free_list中 */
+         for (block_idx = 0; block_idx < descs[desc_idx].blocks_per_arena; block_idx++)
+         {
+            b = arena2block(a, block_idx);
+            ASSERT(!elem_find(&a->desc->free_list, &b->free_elem));
+            list_append(&a->desc->free_list, &b->free_elem);
+         }
+         intr_set_status(old_status);
       }
-   /* 开始分配内存块 */
+      /* 开始分配内存块 */
       b = elem2entry(struct mem_block, free_elem, list_pop(&(descs[desc_idx].free_list)));
       memset(b, 0, descs[desc_idx].block_size);
 
-      a = block2arena(b);  // 获取内存块b所在的arena
-      a->cnt--;		   // 将此arena中的空闲内存块数减1
+      a = block2arena(b); // 获取内存块b所在的arena
+      a->cnt--;           // 将此arena中的空闲内存块数减1
       lock_release(&mem_pool->lock);
-      return (void*)b;
+      return (void *)b;
    }
 }
 
@@ -460,44 +473,54 @@ void mfree_page(enum pool_flags pf, void* _vaddr, uint32_t pg_cnt) {
 
 /* 回收内存ptr */
 void sys_free(void* ptr) {
-   ASSERT(ptr != NULL);
-   if (ptr != NULL) {
-      enum pool_flags PF;
-      struct pool* mem_pool;
+   if (!ptr) {
+      return;
+   }
+   enum pool_flags PF;
+   struct pool* mem_pool;
 
    /* 判断是线程还是进程 */
-      if (running_thread()->pgdir == NULL) {
-	 ASSERT((uint32_t)ptr >= K_HEAP_START);
-	 PF = PF_KERNEL;
-	 mem_pool = &kernel_pool;
-      } else {
-	 PF = PF_USER;
-	 mem_pool = &user_pool;
-      }
-
-      lock_acquire(&mem_pool->lock);
-      struct mem_block* b = ptr;
-      struct arena* a = block2arena(b);	     // 把mem_block转换成arena,获取元信息
-      ASSERT(a->large == 0 || a->large == 1);
-      if (a->desc == NULL && a->large == true) { // 大于1024的内存
-	 mfree_page(PF, a, a->cnt);
-      } else {				 // 小于等于1024的内存块
-	 /* 先将内存块回收到free_list */
-	 list_append(&a->desc->free_list, &b->free_elem);
-
-	 /* 再判断此arena中的内存块是否都是空闲,如果是就释放arena */
-	 if (++a->cnt == a->desc->blocks_per_arena) {
-	    uint32_t block_idx;
-	    for (block_idx = 0; block_idx < a->desc->blocks_per_arena; block_idx++) {
-	       struct mem_block*  b = arena2block(a, block_idx);
-               ASSERT(elem_find(&a->desc->free_list, &b->free_elem));
-	       list_remove(&b->free_elem);
-	    }
-	    mfree_page(PF, a, 1);
-	 }
-      }
-      lock_release(&mem_pool->lock);
+   if (running_thread()->pgdir == NULL)
+   {
+      ASSERT((uint32_t)ptr >= K_HEAP_START);
+      PF = PF_KERNEL;
+      mem_pool = &kernel_pool;
    }
+   else
+   {
+      PF = PF_USER;
+      mem_pool = &user_pool;
+   }
+
+   lock_acquire(&mem_pool->lock);
+   struct mem_block *b = ptr;
+   struct arena *a = block2arena(b); // 把mem_block转换成arena,获取元信息
+   ASSERT(a->large == 0 || a->large == 1);
+   if (a->desc == NULL && a->large == true)
+   { // 大于1024的内存
+      mfree_page(PF, a, a->cnt);
+   }
+   else
+   { // 小于等于1024的内存块
+      /* 先将内存块回收到free_list */
+// printk("pid=%d a=%x a->desc=%x a->cnt=%d a->large=%d paddr=%x\n",
+// sys_getpid(), a, a->desc, a->cnt, a->large, addr_v2p(a));
+      list_append(&a->desc->free_list, &b->free_elem);
+
+      /* 再判断此arena中的内存块是否都是空闲,如果是就释放arena */
+      if (++a->cnt == a->desc->blocks_per_arena)
+      {
+         uint32_t block_idx;
+         for (block_idx = 0; block_idx < a->desc->blocks_per_arena; block_idx++)
+         {
+            struct mem_block *b = arena2block(a, block_idx);
+            ASSERT(elem_find(&a->desc->free_list, &b->free_elem));
+            list_remove(&b->free_elem);
+         }
+         mfree_page(PF, a, 1);
+      }
+   }
+   lock_release(&mem_pool->lock);
 }
 
 void sys_free_kernel(void* ptr) {

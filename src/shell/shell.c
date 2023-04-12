@@ -16,7 +16,7 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 /* 用来记录当前目录,是当前目录的缓存,每次执行cd命令时会更新此内容 */
 char cwd_cache[MAX_PATH_LEN] = {0};
 
-static void process_piped_commands_old(char *command_line);
+// static void process_piped_commands_old(char *command_line);
 static void execute_piped_commands(char *command_line);
 
 /* 输出提示符 */
@@ -192,10 +192,16 @@ static void cmd_execute(uint32_t argc, char **argv)
    }
 }
 
-char* argv[MAX_ARG_NR] = {NULL};
-int32_t argc = -1;
+// char* argv[MAX_ARG_NR] = {NULL};
+// int32_t argc = -1;
 /* 简单的shell */
 void my_shell(void) {
+   char* argv[MAX_ARG_NR] = {NULL};
+   int32_t argc = -1;
+
+char my_commands[] = {"echo abc | cat"};
+execute_piped_commands(my_commands);
+
    cwd_cache[0] = '/';
    while (1) {
       print_prompt();
@@ -232,12 +238,14 @@ static void execute_piped_commands(char *command_line) {
    int cmd_index = 0;
    char *each_cmd = command_line;
    char *pipe_symbol;
+   char cleared_path[256];
+   char* argv[MAX_ARG_NR] = {NULL};
 
    while ((pipe_symbol = strchr(each_cmd, '|'))) {
       *pipe_symbol = 0;
-      argc = cmd_parse(each_cmd, argv, ' ');
-      make_clear_abs_path(argv[0], final_path);
-      argv[0] = final_path;
+      cmd_parse(each_cmd, argv, ' ');
+      make_clear_abs_path(argv[0], cleared_path);
+      argv[0] = cleared_path;
 
       pipe(next);
       if ((pid = fork()) == 0) {
@@ -250,6 +258,7 @@ static void execute_piped_commands(char *command_line) {
          close(next[0]);
          close(next[1]);
          execv(argv[0], argv);
+         panic("should not be here");
       } else if (cmd_index > 0) {
          close(prev[0]);
          close(prev[1]);
@@ -262,14 +271,15 @@ static void execute_piped_commands(char *command_line) {
    }
 
    assert(cmd_index > 0);
-   argc = cmd_parse(each_cmd, argv, ' ');
-   make_clear_abs_path(argv[0], final_path);
-   argv[0] = final_path;
+   cmd_parse(each_cmd, argv, ' ');
+   make_clear_abs_path(argv[0], cleared_path);
+   argv[0] = cleared_path;
    if ((pid = fork()) == 0) {
       fd_redirect(0, prev[0]);
       close(prev[0]);
       close(prev[1]);
       execv(argv[0], argv);
+      panic("should not be here");
    } else {
       close(prev[0]);
       close(prev[1]);
@@ -280,55 +290,55 @@ static void execute_piped_commands(char *command_line) {
       ;;
 }
 
-static void process_piped_commands_old(char *command_line)
-{
-   /* 支持多重管道操作,如cmd1|cmd2|..|cmdn,
-    * cmd1的标准输出和cmdn的标准输入需要单独处理 */
+// static void process_piped_commands_old(char *command_line)
+// {
+//    /* 支持多重管道操作,如cmd1|cmd2|..|cmdn,
+//     * cmd1的标准输出和cmdn的标准输入需要单独处理 */
 
-   /*1 生成管道*/
-   int32_t fd[2] = {-1}; // fd[0]用于输入,fd[1]用于输出
-   pipe(fd);
-   /* 将标准输出重定向到fd[1],使后面的输出信息重定向到内核环形缓冲区 */
-   fd_redirect(1, fd[1]);
+//    /*1 生成管道*/
+//    int32_t fd[2] = {-1}; // fd[0]用于输入,fd[1]用于输出
+//    pipe(fd);
+//    /* 将标准输出重定向到fd[1],使后面的输出信息重定向到内核环形缓冲区 */
+//    fd_redirect(1, fd[1]);
 
-   /*2 第一个命令 */
-   char *each_cmd = command_line;
-   char *pipe_symbol = strchr(each_cmd, '|');
-   *pipe_symbol = 0;
+//    /*2 第一个命令 */
+//    char *each_cmd = command_line;
+//    char *pipe_symbol = strchr(each_cmd, '|');
+//    *pipe_symbol = 0;
 
-   /* 执行第一个命令,命令的输出会写入环形缓冲区 */
-   argc = -1;
-   argc = cmd_parse(each_cmd, argv, ' ');
-   cmd_execute(argc, argv);
+//    /* 执行第一个命令,命令的输出会写入环形缓冲区 */
+//    argc = -1;
+//    argc = cmd_parse(each_cmd, argv, ' ');
+//    cmd_execute(argc, argv);
 
-   /* 跨过'|',处理下一个命令 */
-   each_cmd = pipe_symbol + 1;
+//    /* 跨过'|',处理下一个命令 */
+//    each_cmd = pipe_symbol + 1;
 
-   /* 将标准输入重定向到fd[0],使之指向内核环形缓冲区*/
-   fd_redirect(0, fd[0]);
-   /*3 中间的命令,命令的输入和输出都是指向环形缓冲区 */
-   while ((pipe_symbol = strchr(each_cmd, '|')))
-   {
-      *pipe_symbol = 0;
-      argc = -1;
-      argc = cmd_parse(each_cmd, argv, ' ');
-      cmd_execute(argc, argv);
-      each_cmd = pipe_symbol + 1;
-   }
+//    /* 将标准输入重定向到fd[0],使之指向内核环形缓冲区*/
+//    fd_redirect(0, fd[0]);
+//    /*3 中间的命令,命令的输入和输出都是指向环形缓冲区 */
+//    while ((pipe_symbol = strchr(each_cmd, '|')))
+//    {
+//       *pipe_symbol = 0;
+//       argc = -1;
+//       argc = cmd_parse(each_cmd, argv, ' ');
+//       cmd_execute(argc, argv);
+//       each_cmd = pipe_symbol + 1;
+//    }
 
-   /*4 处理管道中最后一个命令 */
-   /* 将标准输出恢复屏幕 */
-   fd_redirect(1, 1);
+//    /*4 处理管道中最后一个命令 */
+//    /* 将标准输出恢复屏幕 */
+//    fd_redirect(1, 1);
 
-   /* 执行最后一个命令 */
-   argc = -1;
-   argc = cmd_parse(each_cmd, argv, ' ');
-   cmd_execute(argc, argv);
+//    /* 执行最后一个命令 */
+//    argc = -1;
+//    argc = cmd_parse(each_cmd, argv, ' ');
+//    cmd_execute(argc, argv);
 
-   /*5  将标准输入恢复为键盘 */
-   fd_redirect(0, 0);
+//    /*5  将标准输入恢复为键盘 */
+//    fd_redirect(0, 0);
 
-   /*6 关闭管道 */
-   close(fd[0]);
-   close(fd[1]);
-}
+//    /*6 关闭管道 */
+//    close(fd[0]);
+//    close(fd[1]);
+// }

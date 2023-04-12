@@ -100,7 +100,6 @@ static int32_t load(const char* pathname) {
    if (fd == -1) {
       return -1;
    }
-
    if (sys_read(fd, &elf_header, sizeof(struct Elf32_Ehdr)) != sizeof(struct Elf32_Ehdr)) {
       ret = -1;
       goto done;
@@ -154,11 +153,15 @@ done:
 
 /* 用path指向的程序替换当前进程 */
 int32_t sys_execv(const char* path, const char* argv[]) {
+printk("[exec] - %s %d\n", path, sys_getpid());
    uint32_t argc = 0;
    while (argv[argc]) {
       argc++;
    }
+// printk("[exec] 512 %s\n");
+// printk("[exec] before load | %s\n", path);
    int32_t entry_point = load(path);     
+// printk("[exec] after load | %s\n", path);
    if (entry_point == -1) {	 // 若加载失败则返回-1
       return -1;
    }
@@ -167,7 +170,7 @@ int32_t sys_execv(const char* path, const char* argv[]) {
    /* 修改进程名 */
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
-
+// printk("[exec] 1024 %s\n", path);
    // setup argv
    void *ptr = (void*) 0xc0000000;
    const char *user_argv[MAX_ARG_NR] = {NULL};
@@ -183,22 +186,6 @@ int32_t sys_execv(const char* path, const char* argv[]) {
    uint32_t vsize = argc * sizeof(const char *);
    void* argv_start = ptr - vsize;
    memcpy(argv_start, user_argv, vsize);
-   // char *ptr = (char*)(uint32_t)0xc0000000;
-   // for (uint32_t i = 0; i < argc; ++i) {
-   //     ptr -= (strlen(argv[i]) + 1);
-   // }
-   // char *ap = ptr;  // start address of all argv
-
-   // ptr -= argc * sizeof(const char *);  // now ptr points to argv[]
-   // void *user_esp = ptr;
-
-   // char **vp = (char **)ptr;
-   // for (uint32_t i = 0; i < argc; ++i) {
-   //     *vp = ap;
-   //     strcpy(ap, argv[i]);
-   //     ap += strlen(argv[i]) + 1;
-   //     vp += 1;
-   // }
 
    struct intr_stack* intr_0_stack = (struct intr_stack*)((uint32_t)cur + PG_SIZE - sizeof(struct intr_stack));
    /* 参数传递给用户进程 */

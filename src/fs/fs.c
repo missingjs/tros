@@ -266,26 +266,26 @@ static int search_file(const char* pathname, struct path_search_record* searched
 
       /* 在所给的目录中查找文件 */
       if (search_dir_entry(cur_part, parent_dir, name, &dir_e)) {
-	 memset(name, 0, MAX_FILE_NAME_LEN);
-	 /* 若sub_path不等于NULL,也就是未结束时继续拆分路径 */
-	 if (sub_path) {
-	    sub_path = path_parse(sub_path, name);
-	 }
+         memset(name, 0, MAX_FILE_NAME_LEN);
+         /* 若sub_path不等于NULL,也就是未结束时继续拆分路径 */
+         if (sub_path) {
+            sub_path = path_parse(sub_path, name);
+         }
 
-	 if (FT_DIRECTORY == dir_e.f_type) {   // 如果被打开的是目录
-	    parent_inode_no = parent_dir->inode->i_no;
-	    dir_close(parent_dir);
-	    parent_dir = dir_open(cur_part, dir_e.i_no); // 更新父目录
-	    searched_record->parent_dir = parent_dir;
-	    continue;
-	 } else if (FT_REGULAR == dir_e.f_type) {	 // 若是普通文件
-	    searched_record->file_type = FT_REGULAR;
-	    return dir_e.i_no;
-	 }
+         if (FT_DIRECTORY == dir_e.f_type) {   // 如果被打开的是目录
+            parent_inode_no = parent_dir->inode->i_no;
+            dir_close(parent_dir);
+            parent_dir = dir_open(cur_part, dir_e.i_no); // 更新父目录
+            searched_record->parent_dir = parent_dir;
+            continue;
+         } else if (FT_REGULAR == dir_e.f_type) {	 // 若是普通文件
+            searched_record->file_type = FT_REGULAR;
+            return dir_e.i_no;
+         }
       } else {		   //若找不到,则返回-1
-	 /* 找不到目录项时,要留着parent_dir不要关闭,
-	  * 若是创建新文件的话需要在parent_dir中创建 */
-	 return -1;
+         /* 找不到目录项时,要留着parent_dir不要关闭,
+          * 若是创建新文件的话需要在parent_dir中创建 */
+         return -1;
       }
    }
 
@@ -311,11 +311,13 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
    struct path_search_record searched_record;
    memset(&searched_record, 0, sizeof(struct path_search_record));
 
+// printk("[sys_open] %s - before path_depth_cnt\n", pathname);
    /* 记录目录深度.帮助判断中间某个目录不存在的情况 */
    uint32_t pathname_depth = path_depth_cnt((char*)pathname);
 
    /* 先检查文件是否存在 */
    int inode_no = search_file(pathname, &searched_record);
+// printk("[sys_open] %s - after search_file\n", pathname);
    bool found = inode_no != -1 ? true : false;
 
    if (searched_record.file_type == FT_DIRECTORY) {
@@ -353,8 +355,8 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
          dir_close(searched_record.parent_dir);
          break;
       default:
-   /* 其余情况均为打开已存在文件:
-    * O_RDONLY,O_WRONLY,O_RDWR */
+printk("[sys_open] try to open %s\n", pathname);
+         /* 其余情况均为打开已存在文件: O_RDONLY,O_WRONLY,O_RDWR */
          fd = file_open(inode_no, flags);
    }
 
@@ -385,20 +387,6 @@ int32_t sys_close(int32_t fd) {
       } else {
          ret = 0;
       }
-   //    if (is_pipe(fd)) {
-   //  /* 如果此管道上的描述符都被关闭,释放管道的环形缓冲区 */
-   //  if (--file_table[global_fd].fd_pos == 0)
-   //  {
-   //     mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
-   //     file_table[global_fd].fd_inode = NULL;
-   //  }
-   //  ret = 0;
-   //  }
-   //  else
-   //  {
-   //    struct file *filp = &file_table[global_fd];
-   //    ret = filp->op->release(filp);
-   //  }
    }
    running_thread()->fd_table[fd] = -1; // 使该文件描述符位可用
    return ret;
@@ -521,6 +509,10 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
    ASSERT(whence > 0 && whence < 4);
    uint32_t _fd = fd_local2global(fd);
    struct file* pf = &file_table[_fd];
+if (pf->fd_inode == NULL) {
+   printk("process %d, fd %d, global fd %d\n", sys_getpid(), fd, _fd);
+}
+   ASSERT(pf->fd_inode != NULL);
    return pf->op->llseek ? pf->op->llseek(pf, offset, (int32_t) whence) : -1;
 }
 

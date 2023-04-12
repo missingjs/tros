@@ -96,7 +96,9 @@ void file_table_init(void) {
 
 void release_free_slot_in_global(int32_t fd) {
    ASSERT(fd >= 0 && fd < MAX_FILE_OPEN);
+   lock_acquire(&file_table_lock);
    file_table[fd].fd_inode = NULL;
+   lock_release(&file_table_lock);
 }
 
 /* 从文件表file_table中获取一个空闲位,成功返回下标,失败返回-1 */
@@ -105,7 +107,7 @@ int32_t get_free_slot_in_global(void) {
    uint32_t fd_idx = 3;
    while (fd_idx < MAX_FILE_OPEN) {
       if (file_table[fd_idx].fd_inode == NULL) {
-	 break;
+         break;
       }
       fd_idx++;
    }
@@ -286,6 +288,7 @@ int32_t file_open(uint32_t inode_no, uint8_t flag) {
    struct file *filp = &file_table[fd_idx];
    init_file_struct(filp);
    filp->fd_inode = inode_open(cur_part, inode_no);
+   ASSERT(filp->fd_inode != NULL);
    filp->fd_flag = flag;
    atomic_inc(&filp->count);
    filp->op = &disk_file_ops;
@@ -642,14 +645,15 @@ static int32_t disk_file_lseek(struct file *filp, int32_t offset, int32_t whence
 void init_file_struct(struct file *filp) {
    filp->fd_pos = 0;
    filp->fd_flag = 0;
-   filp->fd_inode = NULL;
+   // FIXME: use other flag to indicate that a file struct is free to use
+   // filp->fd_inode = NULL;
    atomic_init(&filp->count);
    filp->op = NULL;
    filp->private_data = NULL;
 }
 
-void finalize_file_struct(struct file *filp) {
-   filp->fd_inode = NULL;
+void finalize_file_struct(struct file *filp UNUSED) {
+   // filp->fd_inode = NULL;
 }
 
 int32_t no_read_fn(struct file *filp UNUSED, char *buf UNUSED, uint32_t size UNUSED) {

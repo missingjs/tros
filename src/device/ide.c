@@ -146,22 +146,27 @@ static bool busy_wait(struct disk* hd) {
    return false;
 }
 
+static void dump_arena(const char *mark, void *ptr) {
+   void *s = (void*)((uint32_t)ptr & 0xfffff000);
+   printk("%s, addr=%x desc=%x cnt=%d large=%d\n", mark, ptr, *(uint32_t*)s, *(uint32_t*)(s+4), *(uint32_t*)(s+8));
+}
+
 /* 从硬盘读取sec_cnt个扇区到buf */
 void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   // 此处的sec_cnt为32位大小
    ASSERT(lba <= max_lba);
    ASSERT(sec_cnt > 0);
-   lock_acquire (&hd->my_channel->lock);
 
-/* 1 先选择操作的硬盘 */
+   lock_acquire (&hd->my_channel->lock);
+   /* 1 先选择操作的硬盘 */
    select_disk(hd);
 
    uint32_t secs_op;		 // 每次操作的扇区数
    uint32_t secs_done = 0;	 // 已完成的扇区数
    while(secs_done < sec_cnt) {
       if ((secs_done + 256) <= sec_cnt) {
-	 secs_op = 256;
+         secs_op = 256;
       } else {
-	 secs_op = sec_cnt - secs_done;
+         secs_op = sec_cnt - secs_done;
       }
 
    /* 2 写入待读入的扇区数和起始扇区号 */
@@ -173,19 +178,23 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   //
    /*********************   阻塞自己的时机  ***********************
       在硬盘已经开始工作(开始在内部读数据或写数据)后才能阻塞自己,现在硬盘已经开始忙了,
       将自己阻塞,等待硬盘完成读操作后通过中断处理程序唤醒自己*/
+dump_arena("before sema_down", buf);
       sema_down(&hd->my_channel->disk_done);
+dump_arena("after sema_down", buf);
    /*************************************************************/
 
    /* 4 检测硬盘状态是否可读 */
       /* 醒来后开始执行下面代码*/
       if (!busy_wait(hd)) {			      // 若失败
-	 char error[64];
-	 sprintf(error, "%s read sector %d failed!!!!!!\n", hd->name, lba);
-	 PANIC(error);
+         char error[64];
+         sprintf(error, "%s read sector %d failed!!!!!!\n", hd->name, lba);
+         PANIC(error);
       }
 
    /* 5 把数据从硬盘的缓冲区中读出 */
+// dump_arena("before read_from_sector", buf);
       read_from_sector(hd, (void*)((uint32_t)buf + secs_done * 512), secs_op);
+// dump_arena("after read_from_sector", buf);
       secs_done += secs_op;
    }
    lock_release(&hd->my_channel->lock);
