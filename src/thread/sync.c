@@ -55,6 +55,10 @@ void sema_down(struct semaphore* psema) {
       }
 /* 若信号量的值等于0,则当前线程把自己加入该锁的等待队列,然后阻塞自己 */
       list_append(&psema->waiters, &running_thread()->general_tag); 
+
+// if (sys_getpid() == 6)
+// dump_arena("before thread_block", (void*)0x804800c);
+
       thread_block(TASK_BLOCKED);    // 阻塞线程,直到被唤醒
    }
 /* 若value为1或被唤醒后,会执行下面的代码,也就是获得了锁。*/

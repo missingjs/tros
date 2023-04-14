@@ -93,7 +93,8 @@ int main(void) {
    init_done = true;
 
    while (1) {
-      thread_yield();
+      // thread_yield();
+      thread_block(TASK_BLOCKED);
    }
    return 0;
 }

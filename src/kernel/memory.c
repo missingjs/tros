@@ -102,6 +102,9 @@ static void* palloc(struct pool* m_pool) {
    }
    bitmap_set(&m_pool->pool_bitmap, bit_idx, 1);	// 将此位bit_idx置1
    uint32_t page_phyaddr = ((bit_idx * PG_SIZE) + m_pool->phy_addr_start);
+if (((uint32_t)page_phyaddr) == 0x1102000) {
+   printk("%x alloced by %d\n", page_phyaddr, sys_getpid());
+}
    return (void*)page_phyaddr;
 }
 
@@ -139,6 +142,9 @@ static void page_table_add(void* _vaddr, void* _page_phyaddr) {
       ASSERT(!(*pte & 0x00000001));
       *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);      // US=1,RW=1,P=1
    }
+// if ((uint32_t)_page_phyaddr == 0x1102000) {
+// printk("%d %x -> %x, ret addr: %x\n", sys_getpid(), _vaddr, _page_phyaddr, *(((uint32_t*)&_vaddr)-1));
+// }
 }
 
 /* 分配pg_cnt个页空间,成功则返回起始虚拟地址,失败时返回NULL */
@@ -162,9 +168,9 @@ void* malloc_page(enum pool_flags pf, uint32_t pg_cnt) {
 /* 因为虚拟地址是连续的,但物理地址可以是不连续的,所以逐个做映射*/
    while (cnt-- > 0) {
       void* page_phyaddr = palloc(mem_pool);
-if (((uint32_t)page_phyaddr) == 0x1102000) {
-   printk("%x alloced by %d\n", page_phyaddr, sys_getpid());
-}
+// if (((uint32_t)page_phyaddr) == 0x1102000) {
+//    printk("%x alloced by %d\n", page_phyaddr, sys_getpid());
+// }
 // if (sys_getpid() == 6) {
 //    printk("phy addr %x alloc\n", page_phyaddr);
 // }
@@ -243,6 +249,7 @@ void* get_a_page_without_opvaddrbitmap(enum pool_flags pf, uint32_t vaddr) {
    struct pool* mem_pool = pf & PF_KERNEL ? &kernel_pool : &user_pool;
    lock_acquire(&mem_pool->lock);
    void* page_phyaddr = palloc(mem_pool);
+if (page_phyaddr == 0x1102000) printk("[get_a_page_without] %x -> %x\n", vaddr, page_phyaddr);
    if (page_phyaddr == NULL) {
       lock_release(&mem_pool->lock);
       return NULL;

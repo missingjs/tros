@@ -60,6 +60,9 @@ static void copy_body_stack3(struct task_struct* child_thread, struct task_struc
 
 	       /* b 将页表切换到子进程,目的是避免下面申请内存的函数将pte及pde安装在父进程的页表中 */
 	       page_dir_activate(child_thread);
+
+// if (prog_vaddr == 0xbffff000) printk("%d prog_vaddr %x of child proc %d\n", sys_getpid(), prog_vaddr, child_thread->pid);
+
 	       /* c 申请虚拟地址prog_vaddr */
 	       get_a_page_without_opvaddrbitmap(PF_USER, prog_vaddr);
 
@@ -146,6 +149,8 @@ static int32_t copy_process(struct task_struct* child_thread, struct task_struct
 
    /* b 为子进程创建页表,此页表仅包括内核空间 */
    child_thread->pgdir = create_page_dir();
+// if (child_thread->pid > 1) printk("pid=%d, pgdir=%x\n", child_thread->pid, child_thread->pgdir);
+
    if(child_thread->pgdir == NULL) {
       return -1;
    }
