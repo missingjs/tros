@@ -54,6 +54,9 @@ bool search_dir_entry(struct partition* part, struct dir* pdir, const char* name
    /* 写目录项的时候已保证目录项不跨扇区,
     * 这样读目录项时容易处理, 只申请容纳1个扇区的内存 */
    uint8_t* buf = (uint8_t*)sys_malloc(SECTOR_SIZE);
+// if (sys_getpid() == 6) {
+//    printk("sys_malloc address %x\n", buf);
+// }
    struct dir_entry* p_de = (struct dir_entry*)buf;	    // p_de为指向目录项的指针,值为buf起始地址
    uint32_t dir_entry_size = part->sb->dir_entry_size;
    uint32_t dir_entry_cnt = SECTOR_SIZE / dir_entry_size;   // 1扇区内可容纳的目录项个数

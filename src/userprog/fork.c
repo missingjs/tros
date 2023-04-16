@@ -48,32 +48,32 @@ static void copy_body_stack3(struct task_struct* child_thread, struct task_struc
    /* 在父进程的用户空间中查找已有数据的页 */
    while (idx_byte < btmp_bytes_len) {
       if (vaddr_btmp[idx_byte]) {
-	 idx_bit = 0;
-	 while (idx_bit < 8) {
-	    if ((BITMAP_MASK << idx_bit) & vaddr_btmp[idx_byte]) {
-	       prog_vaddr = (idx_byte * 8 + idx_bit) * PG_SIZE + vaddr_start;
-	 /* 下面的操作是将父进程用户空间中的数据通过内核空间做中转,最终复制到子进程的用户空间 */
+         idx_bit = 0;
+         while (idx_bit < 8) {
+            if ((BITMAP_MASK << idx_bit) & vaddr_btmp[idx_byte]) {
+               prog_vaddr = (idx_byte * 8 + idx_bit) * PG_SIZE + vaddr_start;
+               /* 下面的操作是将父进程用户空间中的数据通过内核空间做中转,最终复制到子进程的用户空间 */
 
-	       /* a 将父进程在用户空间中的数据复制到内核缓冲区buf_page,
-	       目的是下面切换到子进程的页表后,还能访问到父进程的数据*/
-	       memcpy(buf_page, (void*)prog_vaddr, PG_SIZE);
+               /* a 将父进程在用户空间中的数据复制到内核缓冲区buf_page,
+               目的是下面切换到子进程的页表后,还能访问到父进程的数据*/
+               memcpy(buf_page, (void*)prog_vaddr, PG_SIZE);
 
-	       /* b 将页表切换到子进程,目的是避免下面申请内存的函数将pte及pde安装在父进程的页表中 */
-	       page_dir_activate(child_thread);
+               /* b 将页表切换到子进程,目的是避免下面申请内存的函数将pte及pde安装在父进程的页表中 */
+               page_dir_activate(child_thread);
 
 // if (prog_vaddr == 0xbffff000) printk("%d prog_vaddr %x of child proc %d\n", sys_getpid(), prog_vaddr, child_thread->pid);
 
-	       /* c 申请虚拟地址prog_vaddr */
-	       get_a_page_without_opvaddrbitmap(PF_USER, prog_vaddr);
+               /* c 申请虚拟地址prog_vaddr */
+               get_a_page_without_opvaddrbitmap(PF_USER, prog_vaddr);
 
-	       /* d 从内核缓冲区中将父进程数据复制到子进程的用户空间 */
-	       memcpy((void*)prog_vaddr, buf_page, PG_SIZE);
+               /* d 从内核缓冲区中将父进程数据复制到子进程的用户空间 */
+               memcpy((void*)prog_vaddr, buf_page, PG_SIZE);
 
-	       /* e 恢复父进程页表 */
-	       page_dir_activate(parent_thread);
-	    }
-	    idx_bit++;
-	 }
+               /* e 恢复父进程页表 */
+               page_dir_activate(parent_thread);
+            }
+            idx_bit++;
+         }
       }
       idx_byte++;
    }

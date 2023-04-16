@@ -173,9 +173,10 @@ printk("[exec] - %s %d\n", path, sys_getpid());
 // printk("[exec] 1024 %s\n", path);
    // setup argv
    void *ptr = (void*) 0xc0000000;
+printk("stack page paddr: %x\n", addr_v2p((uint32_t)ptr - 0x1000));
    const char *user_argv[MAX_ARG_NR] = {NULL};
    ASSERT(argc > 0);
-   for (int i = (int) argc - 1; i >= 0; --i) {
+   for (int i = ((int)argc) - 1; i >= 0; --i) {
        uint32_t len = strlen(argv[i]);
        char *s = ptr - len - 1;
        strcpy(s, argv[i]);

@@ -42,6 +42,14 @@ struct mem_block_desc k_block_descs[DESC_CNT];	// 内核内存块描述符数组
 struct pool kernel_pool, user_pool;      // 生成内核内存池和用户内存池
 struct virtual_addr kernel_vaddr;	 // 此结构是用来给内核分配虚拟地址
 
+static inline void flush_tlb_single(uint32_t vaddr) {
+   asm volatile("invlpg (%0)" ::"r" (vaddr) : "memory");
+}
+
+void dump_user_pool(const char *flag, uint32_t index) {
+   printk("[%s] user pool start %x, index %d: %d\n", flag, user_pool.phy_addr_start, index, bitmap_get(&user_pool.pool_bitmap, index));
+}
+
 /* 在pf表示的虚拟内存池中申请pg_cnt个虚拟页,
  * 成功则返回虚拟页的起始地址, 失败则返回NULL */
 static void* vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
@@ -102,8 +110,8 @@ static void* palloc(struct pool* m_pool) {
    }
    bitmap_set(&m_pool->pool_bitmap, bit_idx, 1);	// 将此位bit_idx置1
    uint32_t page_phyaddr = ((bit_idx * PG_SIZE) + m_pool->phy_addr_start);
-if (((uint32_t)page_phyaddr) == 0x1102000) {
-   printk("%x alloced by %d\n", page_phyaddr, sys_getpid());
+if (((uint32_t)page_phyaddr) == 0x1102000 || ((uint32_t)page_phyaddr) == 0x1106000) {
+   printk("%x alloced by %d, bitmap index %d\n", page_phyaddr, sys_getpid(), bit_idx);
 }
    return (void*)page_phyaddr;
 }
@@ -142,6 +150,10 @@ static void page_table_add(void* _vaddr, void* _page_phyaddr) {
       ASSERT(!(*pte & 0x00000001));
       *pte = (page_phyaddr | PG_US_U | PG_RW_W | PG_P_1);      // US=1,RW=1,P=1
    }
+
+flush_tlb_single(vaddr);
+
+
 // if ((uint32_t)_page_phyaddr == 0x1102000) {
 // printk("%d %x -> %x, ret addr: %x\n", sys_getpid(), _vaddr, _page_phyaddr, *(((uint32_t*)&_vaddr)-1));
 // }
@@ -353,6 +365,10 @@ void* sys_malloc(uint32_t size) {
             lock_release(&mem_pool->lock);
             return NULL;
          }
+
+// page_dir_activate(running_thread());
+// thread_yield();
+
          memset(a, 0, PG_SIZE);
 
          /* 对于分配的小块内存,将desc置为相应内存块描述符,
@@ -411,7 +427,7 @@ void pfree(uint32_t pg_phy_addr) {
    }
    bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);	 // 将位图中该位清0
 if (pg_phy_addr == 0x1102000) {
-   printk("%x freed by %d\n", pg_phy_addr, sys_getpid());
+   printk("%x freed by %d, bitmap index %d\n", pg_phy_addr, sys_getpid(), bit_idx);
 }
 }
 
@@ -419,6 +435,8 @@ if (pg_phy_addr == 0x1102000) {
 static void page_table_pte_remove(uint32_t vaddr) {
    uint32_t* pte = pte_ptr(vaddr);
    *pte &= ~PG_P_1;	// 将页表项pte的P位置0
+   // asm volatile ("invlpg (%0)"::"r" (vaddr):"memory");    //更新tlb
+   // asm volatile ("invlpg %0"::"m" (*(uint32_t*)vaddr):"memory");    //更新tlb
    asm volatile ("invlpg %0"::"m" (vaddr):"memory");    //更新tlb
 }
 
@@ -443,7 +461,7 @@ static void vaddr_remove(enum pool_flags pf, void* _vaddr, uint32_t pg_cnt) {
 /* 释放以虚拟地址vaddr为起始的cnt个物理页框 */
 void mfree_page(enum pool_flags pf, void* _vaddr, uint32_t pg_cnt) {
    uint32_t pg_phy_addr;
-   uint32_t vaddr = (int32_t)_vaddr, page_cnt = 0;
+   uint32_t vaddr = (uint32_t)_vaddr, page_cnt = 0;
    ASSERT(pg_cnt >=1 && vaddr % PG_SIZE == 0);
    pg_phy_addr = addr_v2p(vaddr);  // 获取虚拟地址vaddr对应的物理地址
 
@@ -654,6 +672,10 @@ void free_a_phy_page(uint32_t pg_phy_addr) {
       bit_idx = (pg_phy_addr - kernel_pool.phy_addr_start) / PG_SIZE;
    }
    bitmap_set(&mem_pool->pool_bitmap, bit_idx, 0);
+if (pg_phy_addr == 0x1102000) {
+   printk("[free_a_phy_page] %x freed by %d, bitmap index %d, %d\n", 
+         pg_phy_addr, sys_getpid(), bit_idx, bitmap_get(&mem_pool->pool_bitmap, bit_idx));
+}
 }
 
 /* 内存管理部分初始化入口 */

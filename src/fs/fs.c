@@ -300,6 +300,7 @@ static int search_file(const char* pathname, struct path_search_record* searched
 
 /* 打开或创建文件成功后,返回文件描述符,否则返回-1 */
 int32_t sys_open(const char* pathname, uint8_t flags) {
+// printk("enter sys_open %s\n", pathname);
   /* 对目录要用dir_open,这里只有open文件 */
    if (pathname[strlen(pathname) - 1] == '/') {
       printk("can`t open a directory %s\n",pathname);

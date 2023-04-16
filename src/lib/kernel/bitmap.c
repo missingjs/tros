@@ -78,3 +78,9 @@ void bitmap_set(struct bitmap* btmp, uint32_t bit_idx, int8_t value) {
       btmp->bits[byte_idx] &= ~(BITMAP_MASK << bit_odd);
    }
 }
+
+int bitmap_get(struct bitmap* btmp, uint32_t bit_idx) {
+   uint32_t byte_idx = bit_idx / 8;    // 向下取整用于索引数组下标
+   uint32_t bit_odd  = bit_idx % 8;    // 取余用于索引数组内的位
+   return (btmp->bits[byte_idx] >> bit_odd) & 1;
+}

@@ -1,9 +1,9 @@
 #include "device/console.h"
 #include "kernel/memory.h"
 
-void page_table(void);
+void bugs_page_table(void);
 
-void page_table(void)
+void bugs_page_table(void)
 {
     // set cpu's ips larger than 22,500,000 will trigger this bug
     //

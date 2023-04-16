@@ -180,12 +180,39 @@ void ide_read(struct disk* hd, uint32_t lba, void* buf, uint32_t sec_cnt) {   //
    /*********************   阻塞自己的时机  ***********************
       在硬盘已经开始工作(开始在内部读数据或写数据)后才能阻塞自己,现在硬盘已经开始忙了,
       将自己阻塞,等待硬盘完成读操作后通过中断处理程序唤醒自己*/
-if (sys_getpid() == 6)
+if (sys_getpid() == 6) {
+// thread_yield();
+// page_dir_activate(running_thread());
 dump_arena("before sema_down", buf);
+// uint32_t *p = (uint32_t*) ((uint32_t)buf & 0xfffff000);
+// int c = 0;
+// for (int i = 0; i < 1024; ++i, ++p) {
+//    if (*p) {
+//       ++c;
+//    }
+// }
+// if (c == 14) {
+   // p = (uint32_t*) ((uint32_t)buf & 0xfffff000);
+   // for (int i = 0; i < 1024; ++i, ++p) {
+   //    if (*p) {
+   //       printk("%x:%x ", p, *p);
+   //    }
+   // }
+   // printk("\n");
+// }
+}
 // printk("buf[0]=%x, buf[1]=%x\n", *(uint32_t*)buf, *(uint32_t*)(buf+4));
       sema_down(&hd->my_channel->disk_done);
-if (sys_getpid() == 6)
+if (sys_getpid() == 6) {
 dump_arena("after sema_down", buf);
+// uint32_t *p = (uint32_t*) ((uint32_t)buf & 0xfffff000);
+// for (int i = 0; i < 1024; ++i) {
+//    if (p[i]) {
+//       printk("%x:%x ", &p[i], p[i]);
+//    }
+// }
+// printk("\n");
+}
 // printk("buf[0]=%x, buf[1]=%x\n", *(uint32_t*)buf, *(uint32_t*)(buf+4));
    /*************************************************************/
 

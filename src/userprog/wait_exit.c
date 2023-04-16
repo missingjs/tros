@@ -27,29 +27,48 @@ static void release_prog_resource(struct task_struct* release_thread) {
    uint32_t* first_pte_vaddr_in_pde = NULL;	// 用来记录pde中第0个pte的地址
    uint32_t pg_phy_addr = 0;
 
+if (release_thread->pid == 5) {
+   printk("[rpr] %x -> %x\n", 0xbffff000, addr_v2p(0xbffff000));
+   // printk("page of pid 5: ");
+   uint32_t *p = (uint32_t*)0xbffff000;
+   // for (int i = 0; i < 1024; ++i, ++p) {
+   //    if (*p) {
+   //       printk("%x:%x ", p, *p);
+   //    }
+   // }
+   // printk("\n");
+   for (int i = 0; i < 1024; ++i) {
+      // p[i] = 0;
+   }
+}
+
    /* 回收页表中用户空间的页框 */
    while (pde_idx < user_pde_nr) {
       v_pde_ptr = pgdir_vaddr + pde_idx;
       pde = *v_pde_ptr;
       if (pde & 0x00000001) {   // 如果页目录项p位为1,表示该页目录项下可能有页表项
-	 first_pte_vaddr_in_pde = pte_ptr(pde_idx * 0x400000);	  // 一个页表表示的内存容量是4M,即0x400000
-	 pte_idx = 0;
-	 while (pte_idx < user_pte_nr) {
-	    v_pte_ptr = first_pte_vaddr_in_pde + pte_idx;
-	    pte = *v_pte_ptr;
-	    if (pte & 0x00000001) {
-	       /* 将pte中记录的物理页框直接在相应内存池的位图中清0 */
-	       pg_phy_addr = pte & 0xfffff000;
-	       free_a_phy_page(pg_phy_addr);
-	    }
-	    pte_idx++;
-	 }
-	 /* 将pde中记录的物理页框直接在相应内存池的位图中清0 */
-	 pg_phy_addr = pde & 0xfffff000;
-	 free_a_phy_page(pg_phy_addr);
+         first_pte_vaddr_in_pde = pte_ptr(pde_idx * 0x400000);	  // 一个页表表示的内存容量是4M,即0x400000
+         pte_idx = 0;
+         while (pte_idx < user_pte_nr) {
+            v_pte_ptr = first_pte_vaddr_in_pde + pte_idx;
+            pte = *v_pte_ptr;
+            if (pte & 0x00000001) {
+               /* 将pte中记录的物理页框直接在相应内存池的位图中清0 */
+               pg_phy_addr = pte & 0xfffff000;
+               free_a_phy_page(pg_phy_addr);
+            }
+            pte_idx++;
+         }
+         /* 将pde中记录的物理页框直接在相应内存池的位图中清0 */
+         pg_phy_addr = pde & 0xfffff000;
+         free_a_phy_page(pg_phy_addr);
       }
       pde_idx++;
    }
+
+if (release_thread->pid == 5) {
+   printk("[rpr] %x: %x\n", 0xbffff000, *(uint32_t*)0xbffff000);
+}
 
    /* 回收用户虚拟地址池所占的物理内存*/
    uint32_t bitmap_pg_cnt = (release_thread->userprog_vaddr.vaddr_bitmap.btmp_bytes_len) / PG_SIZE;
@@ -60,15 +79,7 @@ static void release_prog_resource(struct task_struct* release_thread) {
    uint8_t local_fd = 3;
    while(local_fd < MAX_FILES_OPEN_PER_PROC) {
       if (release_thread->fd_table[local_fd] != -1) {
-	//  if (is_pipe(local_fd)) {
-	//     uint32_t global_fd = fd_local2global(local_fd);
-	//     if (--file_table[global_fd].fd_pos == 0) {
-	//        mfree_page(PF_KERNEL, file_table[global_fd].fd_inode, 1);
-	//        file_table[global_fd].fd_inode = NULL;
-	//     }
-	//  } else {
-	    sys_close(local_fd);
-	//  }
+         sys_close(local_fd);
       }
       local_fd++;
    }
@@ -123,6 +134,8 @@ pid_t sys_wait(int32_t* status) {
 	 /* 2 从就绪队列和全部队列中删除进程表项*/
 	 thread_exit(child_thread, false); // 传入false,使thread_exit调用后回到此处
 	 /* 进程表项是进程或线程的最后保留的资源, 至此该进程彻底消失了 */
+
+printk("child %d destroyed\n", child_pid);
 
 	 return child_pid;
       }
