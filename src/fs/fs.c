@@ -506,9 +506,6 @@ int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {
    ASSERT(whence > 0 && whence < 4);
    uint32_t _fd = fd_local2global(fd);
    struct file* pf = &file_table[_fd];
-if (pf->fd_inode == NULL) {
-   printk("process %d, fd %d, global fd %d\n", sys_getpid(), fd, _fd);
-}
    ASSERT(pf->fd_inode != NULL);
    return pf->op->llseek ? pf->op->llseek(pf, offset, (int32_t) whence) : -1;
 }

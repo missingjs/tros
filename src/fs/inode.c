@@ -73,8 +73,6 @@ void inode_sync(struct partition* part, struct inode* inode, void* io_buf) {	 //
    }
 }
 
-static void dump_arena(const char *, void *ptr);
-
 /* 根据i结点号返回相应的i结点 */
 struct inode* inode_open(struct partition* part, uint32_t inode_no) {
    /* 先在已打开inode链表中找inode,此链表是为提速创建的缓冲区 */
@@ -116,10 +114,7 @@ struct inode* inode_open(struct partition* part, uint32_t inode_no) {
       ide_read(part->my_disk, inode_pos.sec_lba, inode_buf, 2);
    } else {	// 否则,所查找的inode未跨扇区,一个扇区大小的缓冲区足够
       inode_buf = (char*)sys_malloc(512);
-// printk("[inode_open] inode_buf=%x\n", inode_buf);
-// dump_arena("before ide_read", inode_buf);
       ide_read(part->my_disk, inode_pos.sec_lba, inode_buf, 1);
-// dump_arena("after ide_read", inode_buf);
    }
    memcpy(inode_found, inode_buf + inode_pos.off_size, sizeof(struct inode));
 
@@ -127,15 +122,8 @@ struct inode* inode_open(struct partition* part, uint32_t inode_no) {
    list_push(&part->open_inodes, &inode_found->inode_tag);
    inode_found->i_open_cnts = 1;
 
-// printk("[inode_open] to free inode_buf=%x\n", inode_buf);
-// dump_arena("before sys_free", inode_buf);
    sys_free(inode_buf);
    return inode_found;
-}
-
-static void dump_arena(const char *mark, void *ptr) {
-   void *s = (void*)((uint32_t)ptr & 0xfffff000);
-   printk("%s, desc=%x cnt=%d large=%d\n", mark, *(uint32_t*)s, *(uint32_t*)(s+4), *(uint32_t*)(s+8));
 }
 
 /* 关闭inode或减少inode的打开数 */

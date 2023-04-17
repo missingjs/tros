@@ -60,7 +60,4 @@ void sys_free_kernel(void* ptr);
 void kfree(void* ptr);
 void* get_a_page_without_opvaddrbitmap(enum pool_flags pf, uint32_t vaddr);
 void free_a_phy_page(uint32_t pg_phy_addr);
-
-void dump_user_pool(const char *flag, uint32_t index);
-
 #endif

@@ -46,10 +46,6 @@ static inline void flush_tlb_single(uint32_t vaddr) {
    asm volatile("invlpg (%0)" ::"r" (vaddr) : "memory");
 }
 
-void dump_user_pool(const char *flag, uint32_t index) {
-   printk("[%s] user pool start %x, index %d: %d\n", flag, user_pool.phy_addr_start, index, bitmap_get(&user_pool.pool_bitmap, index));
-}
-
 /* 在pf表示的虚拟内存池中申请pg_cnt个虚拟页,
  * 成功则返回虚拟页的起始地址, 失败则返回NULL */
 static void* vaddr_get(enum pool_flags pf, uint32_t pg_cnt) {
@@ -412,9 +408,9 @@ void pfree(uint32_t pg_phy_addr) {
 static void page_table_pte_remove(uint32_t vaddr) {
    uint32_t* pte = pte_ptr(vaddr);
    *pte &= ~PG_P_1;	// 将页表项pte的P位置0
-   asm volatile ("invlpg (%0)"::"r" (vaddr):"memory");    //更新tlb
+   asm volatile ("invlpg (%0)" :: "r" (vaddr) : "memory");    //更新tlb
    // asm volatile ("invlpg %0"::"m" (*(uint32_t*)vaddr):"memory");    //更新tlb
-   // asm volatile ("invlpg %0"::"m" (vaddr):"memory");    //更新tlb
+   // asm volatile ("invlpg %0"::"m" (vaddr):"memory");    // this is a horrible mistake !
 }
 
 /* 在虚拟地址池中释放以_vaddr起始的连续pg_cnt个虚拟页地址 */

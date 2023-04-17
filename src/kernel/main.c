@@ -24,11 +24,6 @@ void fork_test(void);
 static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size);
 static bool init_done = false;
 
-static void run_bugs_page_table(void *p UNUSED) {
-   bugs_page_table();
-   while(1);
-}
-
 int main(void) {
    put_str("I am kernel\n");
    init_all();
