@@ -89,7 +89,7 @@ int main(void) {
    sys_free(idx_content);
    sys_free(buf);
 
-   // cls_screen();
+   cls_screen();
    init_done = true;
 
    while (1) {
@@ -171,15 +171,6 @@ void init(void)
 }
 
 static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size) {
-   // char buffer[128];
-   // memcpy(buffer, ptr, end-ptr);
-   // buffer[end-ptr] = 0;
-   // printk("%x, %x, line: [%s], %d\n", ptr, end, buffer, end-ptr);
-   // for (const char *p = ptr; p != end; ++p) {
-   //    printk("%d ", *p);
-   // }
-   // printk("\n");
-
    // parse path
    char *p = f_path;
    while (ptr != end && *ptr != ' ') {

@@ -192,15 +192,13 @@ static void cmd_execute(uint32_t argc, char **argv)
    }
 }
 
-// char* argv[MAX_ARG_NR] = {NULL};
-// int32_t argc = -1;
 /* 简单的shell */
 void my_shell(void) {
    char* argv[MAX_ARG_NR] = {NULL};
    int32_t argc = -1;
 
-char my_commands[] = {"echo abc | cat"};
-execute_piped_commands(my_commands);
+// char my_commands[] = {"echo abc | cat"};
+// execute_piped_commands(my_commands);
 
    cwd_cache[0] = '/';
    while (1) {
@@ -209,7 +207,7 @@ execute_piped_commands(my_commands);
       memset(cmd_line, 0, MAX_PATH_LEN);
       readline(cmd_line, MAX_PATH_LEN);
       if (cmd_line[0] == 0) { // 若只键入了一个回车
-        continue;
+         continue;
       }
 
       /* 针对管道的处理 */

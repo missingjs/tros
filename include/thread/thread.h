@@ -118,4 +118,5 @@ void sys_ps(void);
 void thread_exit(struct task_struct* thread_over, bool need_schedule);
 struct task_struct* pid2thread(int32_t pid);
 void release_pid(pid_t pid);
+uint32_t sys_getpid(void);
 #endif

@@ -374,8 +374,8 @@ uint32_t fd_local2global(uint32_t local_fd) {
 int32_t sys_close(int32_t fd) {
    ASSERT(fd >= 0);
    int32_t ret = -1; // 返回值默认为-1,即失败
-   if (fd > 2) {
-      uint32_t global_fd = fd_local2global(fd);
+   uint32_t global_fd = fd_local2global(fd);
+   if (global_fd > 2) {  // skip stdin/stdout/stderr
       struct file *filp = &file_table[global_fd];
       if (atomic_dec(&filp->count) == 0) {
          ret = filp->op->release(filp);
@@ -395,107 +395,27 @@ int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
       printk("sys_write: fd error\n");
       return -1;
    }
-   // if (fd == stdout_no) {
-   //    // char tmp_buf[1024] = {0};
-   //    // memcpy(tmp_buf, buf, count);
-   //    // console_put_str(tmp_buf);
-   //    console_put_str_n((const char *) buf, count);
-   //    return count;
-   // } else {
-      uint32_t _fd = fd_local2global(fd);
-      struct file* wr_file = &file_table[_fd];
-      if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
-         return wr_file->op->write(wr_file, buf, count);
-      } else {
-	      console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
-	      return -1;
-      }
-   // }
+   
+   uint32_t _fd = fd_local2global(fd);
+   struct file* wr_file = &file_table[_fd];
+   if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
+      return wr_file->op->write(wr_file, buf, count);
+   } else {
+      console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
+      return -1;
+   }
 }
-// int32_t sys_write(int32_t fd, const void* buf, uint32_t count) {
-//    if (fd < 0) {
-//       printk("sys_write: fd error\n");
-//       return -1;
-//    }
-//    if (fd == stdout_no) {
-//       /* 标准输出有可能被重定向为管道缓冲区, 因此要判断 */
-//       if (is_pipe(fd)) {
-// 	 return pipe_write(fd, buf, count);
-//       } else {
-// 	 char tmp_buf[1024] = {0};
-// 	 memcpy(tmp_buf, buf, count);
-// 	 console_put_str(tmp_buf);
-// 	 return count;
-//       }
-//    } else if (is_pipe(fd)){	    /* 若是管道就调用管道的方法 */
-//       return pipe_write(fd, buf, count);
-//    } else {
-//       uint32_t _fd = fd_local2global(fd);
-//       struct file* wr_file = &file_table[_fd];
-//       if (wr_file->fd_flag & O_WRONLY || wr_file->fd_flag & O_RDWR) {
-// 	//  uint32_t bytes_written  = file_write(wr_file, buf, count);
-// 	//  return bytes_written;
-//          return wr_file->op->write(wr_file, buf, count);
-//       } else {
-// 	 console_put_str("sys_write: not allowed to write file without flag O_RDWR or O_WRONLY\n");
-// 	 return -1;
-//       }
-//    }
-// }
 
 /* 从文件描述符fd指向的文件中读取count个字节到buf,若成功则返回读出的字节数,到文件尾则返回-1 */
 int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
    ASSERT(fd >= 0);
    ASSERT(buf != NULL);
    int32_t ret = -1;
-   uint32_t global_fd = 0;
-   // if (fd < 0 || fd == stdout_no || fd == stderr_no) {
-   //    printk("sys_read: fd error\n");
-   // } else if (fd == stdin_no) {
-   //    char* buffer = buf;
-   //    uint32_t bytes_read = 0;
-   //    while (bytes_read < count) {
-   //       *buffer = ioq_getchar(&kbd_buf);
-   //       bytes_read++;
-   //       buffer++;
-   //    }
-   //    ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
-   // } else {
-      global_fd = fd_local2global(fd);
-      struct file *filp = &file_table[global_fd];
-      ret = filp->op->read(filp, buf, count);
-   // }
+   uint32_t global_fd = fd_local2global(fd);
+   struct file *filp = &file_table[global_fd];
+   ret = filp->op->read(filp, buf, count);
    return ret;
 }
-// int32_t sys_read(int32_t fd, void* buf, uint32_t count) {
-//    ASSERT(buf != NULL);
-//    int32_t ret = -1;
-//    uint32_t global_fd = 0;
-//    if (fd < 0 || fd == stdout_no || fd == stderr_no) {
-//       printk("sys_read: fd error\n");
-//    } else if (fd == stdin_no) {
-//       /* 标准输入有可能被重定向为管道缓冲区, 因此要判断 */
-//       if (is_pipe(fd)) {
-// 	 ret = pipe_read(fd, buf, count);
-//       } else {
-// 	 char* buffer = buf;
-// 	 uint32_t bytes_read = 0;
-// 	 while (bytes_read < count) {
-// 	    *buffer = ioq_getchar(&kbd_buf);
-// 	    bytes_read++;
-// 	    buffer++;
-// 	 }
-// 	 ret = (bytes_read == 0 ? -1 : (int32_t)bytes_read);
-//       }
-//    } else if (is_pipe(fd)) {	 /* 若是管道就调用管道的方法 */
-//       ret = pipe_read(fd, buf, count);
-//    } else {
-//       global_fd = fd_local2global(fd);
-//       struct file *filp = &file_table[global_fd];
-//       ret = filp->op->read(filp, buf, count);
-//    }
-//    return ret;
-// }
 
 /* 重置用于文件读写操作的偏移指针,成功时返回新的偏移量,出错时返回-1 */
 int32_t sys_lseek(int32_t fd, int32_t offset, uint8_t whence) {

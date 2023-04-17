@@ -27,21 +27,6 @@ static void release_prog_resource(struct task_struct* release_thread) {
    uint32_t* first_pte_vaddr_in_pde = NULL;	// 用来记录pde中第0个pte的地址
    uint32_t pg_phy_addr = 0;
 
-if (release_thread->pid == 5) {
-   // printk("[rpr] %x -> %x\n", 0xbffff000, addr_v2p(0xbffff000));
-   // printk("page of pid 5: ");
-   // uint32_t *p = (uint32_t*)0xbffff000;
-   // for (int i = 0; i < 1024; ++i, ++p) {
-   //    if (*p) {
-   //       printk("%x:%x ", p, *p);
-   //    }
-   // }
-   // printk("\n");
-   // for (int i = 0; i < 1024; ++i) {
-      // p[i] = 0;
-   // }
-}
-
    /* 回收页表中用户空间的页框 */
    while (pde_idx < user_pde_nr) {
       v_pde_ptr = pgdir_vaddr + pde_idx;
@@ -66,17 +51,13 @@ if (release_thread->pid == 5) {
       pde_idx++;
    }
 
-// if (release_thread->pid == 5) {
-//    printk("[rpr] %x: %x\n", 0xbffff000, *(uint32_t*)0xbffff000);
-// }
-
    /* 回收用户虚拟地址池所占的物理内存*/
    uint32_t bitmap_pg_cnt = (release_thread->userprog_vaddr.vaddr_bitmap.btmp_bytes_len) / PG_SIZE;
    uint8_t* user_vaddr_pool_bitmap = release_thread->userprog_vaddr.vaddr_bitmap.bits;
    mfree_page(PF_KERNEL, user_vaddr_pool_bitmap, bitmap_pg_cnt);
 
    /* 关闭进程打开的文件 */
-   uint8_t local_fd = 3;
+   uint8_t local_fd = 0;
    while(local_fd < MAX_FILES_OPEN_PER_PROC) {
       if (release_thread->fd_table[local_fd] != -1) {
          sys_close(local_fd);

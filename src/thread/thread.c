@@ -378,3 +378,8 @@ void thread_init(void) {
 
    put_str("thread_init done\n");
 }
+
+/* 返回当前任务的pid */
+uint32_t sys_getpid(void) {
+   return (uint32_t) running_thread()->pid;
+}

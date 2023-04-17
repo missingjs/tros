@@ -20,11 +20,6 @@ syscall syscall_table[syscall_nr];
 
 void sys_yield(void);
 
-/* 返回当前任务的pid */
-uint32_t sys_getpid(void) {
-   return running_thread()->pid;
-}
-
 void sys_msleep(uint32_t millis) {
    mtime_sleep(millis);
 }
