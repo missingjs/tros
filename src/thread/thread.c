@@ -325,13 +325,13 @@ void thread_exit(struct task_struct* thread_over, bool need_schedule) {
    /* 从all_thread_list中去掉此任务 */
    list_remove(&thread_over->all_list_tag);
 
+   /* 归还pid */
+   release_pid(thread_over->pid);
+
    /* 回收pcb所在的页,主线程的pcb不在堆中,跨过 */
    if (thread_over != main_thread) {
       mfree_page(PF_KERNEL, thread_over, 1);
    }
-
-   /* 归还pid */
-   release_pid(thread_over->pid);
 
    /* 如果需要下一轮调度则主动调用schedule */
    if (need_schedule) {

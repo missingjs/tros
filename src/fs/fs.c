@@ -300,7 +300,6 @@ static int search_file(const char* pathname, struct path_search_record* searched
 
 /* 打开或创建文件成功后,返回文件描述符,否则返回-1 */
 int32_t sys_open(const char* pathname, uint8_t flags) {
-// printk("enter sys_open %s\n", pathname);
   /* 对目录要用dir_open,这里只有open文件 */
    if (pathname[strlen(pathname) - 1] == '/') {
       printk("can`t open a directory %s\n",pathname);
@@ -312,13 +311,11 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
    struct path_search_record searched_record;
    memset(&searched_record, 0, sizeof(struct path_search_record));
 
-// printk("[sys_open] %s - before path_depth_cnt\n", pathname);
    /* 记录目录深度.帮助判断中间某个目录不存在的情况 */
    uint32_t pathname_depth = path_depth_cnt((char*)pathname);
 
    /* 先检查文件是否存在 */
    int inode_no = search_file(pathname, &searched_record);
-// printk("[sys_open] %s - after search_file\n", pathname);
    bool found = inode_no != -1 ? true : false;
 
    if (searched_record.file_type == FT_DIRECTORY) {
@@ -356,7 +353,6 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
          dir_close(searched_record.parent_dir);
          break;
       default:
-printk("[sys_open] try to open %s\n", pathname);
          /* 其余情况均为打开已存在文件: O_RDONLY,O_WRONLY,O_RDWR */
          fd = file_open(inode_no, flags);
    }

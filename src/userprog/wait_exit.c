@@ -28,18 +28,18 @@ static void release_prog_resource(struct task_struct* release_thread) {
    uint32_t pg_phy_addr = 0;
 
 if (release_thread->pid == 5) {
-   printk("[rpr] %x -> %x\n", 0xbffff000, addr_v2p(0xbffff000));
+   // printk("[rpr] %x -> %x\n", 0xbffff000, addr_v2p(0xbffff000));
    // printk("page of pid 5: ");
-   uint32_t *p = (uint32_t*)0xbffff000;
+   // uint32_t *p = (uint32_t*)0xbffff000;
    // for (int i = 0; i < 1024; ++i, ++p) {
    //    if (*p) {
    //       printk("%x:%x ", p, *p);
    //    }
    // }
    // printk("\n");
-   for (int i = 0; i < 1024; ++i) {
+   // for (int i = 0; i < 1024; ++i) {
       // p[i] = 0;
-   }
+   // }
 }
 
    /* 回收页表中用户空间的页框 */
@@ -66,9 +66,9 @@ if (release_thread->pid == 5) {
       pde_idx++;
    }
 
-if (release_thread->pid == 5) {
-   printk("[rpr] %x: %x\n", 0xbffff000, *(uint32_t*)0xbffff000);
-}
+// if (release_thread->pid == 5) {
+//    printk("[rpr] %x: %x\n", 0xbffff000, *(uint32_t*)0xbffff000);
+// }
 
    /* 回收用户虚拟地址池所占的物理内存*/
    uint32_t bitmap_pg_cnt = (release_thread->userprog_vaddr.vaddr_bitmap.btmp_bytes_len) / PG_SIZE;
@@ -125,28 +125,25 @@ pid_t sys_wait(int32_t* status) {
       struct list_elem* child_elem = list_traversal(&thread_all_list, find_hanging_child, parent_thread->pid);
       /* 若有挂起的子进程 */
       if (child_elem != NULL) {
-	 struct task_struct* child_thread = elem2entry(struct task_struct, all_list_tag, child_elem);
-	 *status = child_thread->exit_status;
+         struct task_struct* child_thread = elem2entry(struct task_struct, all_list_tag, child_elem);
+         *status = child_thread->exit_status;
 
-	 /* thread_exit之后,pcb会被回收,因此提前获取pid */
-	 uint16_t child_pid = child_thread->pid;
+         /* thread_exit之后,pcb会被回收,因此提前获取pid */
+         uint16_t child_pid = child_thread->pid;
 
-	 /* 2 从就绪队列和全部队列中删除进程表项*/
-	 thread_exit(child_thread, false); // 传入false,使thread_exit调用后回到此处
-	 /* 进程表项是进程或线程的最后保留的资源, 至此该进程彻底消失了 */
-
-printk("child %d destroyed\n", child_pid);
-
-	 return child_pid;
+         /* 2 从就绪队列和全部队列中删除进程表项*/
+         thread_exit(child_thread, false); // 传入false,使thread_exit调用后回到此处
+         /* 进程表项是进程或线程的最后保留的资源, 至此该进程彻底消失了 */
+         return child_pid;
       }
 
       /* 判断是否有子进程 */
       child_elem = list_traversal(&thread_all_list, find_child, parent_thread->pid);
       if (child_elem == NULL) {	 // 若没有子进程则出错返回
-	 return -1;
+         return -1;
       } else {
-      /* 若子进程还未运行完,即还未调用exit,则将自己挂起,直到子进程在执行exit时将自己唤醒 */
-	 thread_block(TASK_WAITING);
+         /* 若子进程还未运行完,即还未调用exit,则将自己挂起,直到子进程在执行exit时将自己唤醒 */
+         thread_block(TASK_WAITING);
       }
    }
 }

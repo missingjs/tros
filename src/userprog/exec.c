@@ -153,15 +153,11 @@ done:
 
 /* 用path指向的程序替换当前进程 */
 int32_t sys_execv(const char* path, const char* argv[]) {
-printk("[exec] - %s %d\n", path, sys_getpid());
    uint32_t argc = 0;
    while (argv[argc]) {
       argc++;
    }
-// printk("[exec] 512 %s\n");
-// printk("[exec] before load | %s\n", path);
    int32_t entry_point = load(path);     
-// printk("[exec] after load | %s\n", path);
    if (entry_point == -1) {	 // 若加载失败则返回-1
       return -1;
    }
@@ -170,10 +166,8 @@ printk("[exec] - %s %d\n", path, sys_getpid());
    /* 修改进程名 */
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
-// printk("[exec] 1024 %s\n", path);
    // setup argv
    void *ptr = (void*) 0xc0000000;
-printk("stack page paddr: %x\n", addr_v2p((uint32_t)ptr - 0x1000));
    const char *user_argv[MAX_ARG_NR] = {NULL};
    ASSERT(argc > 0);
    for (int i = ((int)argc) - 1; i >= 0; --i) {

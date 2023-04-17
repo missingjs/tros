@@ -33,47 +33,6 @@ int main(void) {
    put_str("I am kernel\n");
    init_all();
 
-   intr_disable();
-
-   void *p1 = sys_malloc(32);
-   uint32_t pg1 = 0xfffff000 & (uint32_t)p1;
-   printk("[a] v:%x p:%x\n", p1, addr_v2p(p1));
-
-   void *p2 = sys_malloc(64);
-   uint32_t pg2 = 0xfffff000 & (uint32_t)p2;
-   printk("[b] v:%x p:%x\n", p2, addr_v2p(p2));
-
-   sys_free(p1);
-
-   void *p3 = sys_malloc(8192);
-   uint32_t pg3 = 0xfffff000 & (uint32_t)p3;
-   printk("[c] v:%x p:%x\n", p3, addr_v2p(p3));
-
-   void *p4 = sys_malloc(256);
-   uint32_t pg4 = 0xfffff000 & (uint32_t)p4;
-   printk("[d] v:%x p:%x\n", p4, addr_v2p(p4));
-
-   uint32_t *xp = (uint32_t*)pg4;
-   printk("%x %x %x\n", xp[0], xp[1], xp[2]);
-
-   page_dir_activate(running_thread());
-   
-   printk("%x %x %x\n", xp[0], xp[1], xp[2]);
-
-   // sys_free(p4);
-
-   // p1 = sys_malloc(32);
-   // pg1 = 0xfffff000 & (uint32_t)p1;
-   // printk("[a] v:%x p:%x\n", p1, addr_v2p(p1));
-   // uint32_t *xp = (uint32_t*)pg1;
-   // printk("%x %d %d\n", *xp, *(xp+1), *(xp+2));
-   // sys_free(p1);
-
-   // sys_free(p3);
-   // sys_free(p2);
-
-   while(1);
-
 /*************    写入应用程序    *************/
 //   uint32_t file_size = 11988;
 //   uint32_t sec_cnt = DIV_ROUND_UP(file_size, 512);
