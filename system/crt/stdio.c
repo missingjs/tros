@@ -1,9 +1,6 @@
-#include "kernel/global.h"
-#include "kernel/interrupt.h"
-#include "kernel/print.h"
 #include "stdio.h"
 #include "string.h"
-#include "user/syscall.h"
+#include "syscall.h"
 
 #define va_start(ap, v) ap = (va_list)&v  // 把ap指向第一个固定参数v
 #define va_arg(ap, t) *((t*)(ap += 4))	  // ap指向下一个参数并返回其值
@@ -90,3 +87,4 @@ uint32_t printf(const char* format, ...) {
    va_end(args);
    return write(1, buf, strlen(buf));
 }
+
