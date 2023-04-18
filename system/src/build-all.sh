@@ -15,7 +15,7 @@ function build_exec()
 
     set -x
     gcc $CFLAGS -I$proj_dir/include -I$proj_dir/include/lib *.c || exit
-    ld -m elf_i386 -o $bin_name *.o $proj_dir/system/crt/tros_crt.a || exit
+    ld -m elf_i386 -o $bin_name *.o $proj_dir/system/crt/mini-crt.a || exit
     mv $bin_name $target_dir
     set +x
 }

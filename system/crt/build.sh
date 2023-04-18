@@ -19,4 +19,4 @@ done
 
 nasm -f elf32 ./start.S -o ./start.o
 
-ar rcs tros_crt.a *.o
+ar rcs mini-crt.a *.o
