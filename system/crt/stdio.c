@@ -6,6 +6,20 @@
 #define va_arg(ap, t) *((t*)(ap += 4))	  // ap指向下一个参数并返回其值
 #define va_end(ap) ap = NULL		  // 清除ap
 
+enum oflags {
+   O_RDONLY,>---  // 只读
+   O_WRONLY,>---  // 只写
+   O_RDWR,>-  // 读写
+   O_CREAT = 4>-  // 创建
+};
+
+/* 文件读写位置偏移量 */
+enum whence {
+   SEEK_SET = 1,
+   SEEK_CUR,
+   SEEK_END
+};
+
 /* 将整型转换成字符(integer to ascii) */
 static void itoa(uint32_t value, char** buf_ptr_addr, uint8_t base) {
    uint32_t m = value % base;	    // 求模,最先掉下来的是最低位
@@ -88,3 +102,31 @@ uint32_t printf(const char* format, ...) {
    return write(1, buf, strlen(buf));
 }
 
+FILE *fopen(const char *filename, const char *mode) {
+   FILE *fp = (FILE *)malloc(sizeof(FILE));
+   if (mode[0] == 'r') {
+      fp->mode = O_RDONLY;
+   } else if (mode[0] == 'w') {
+      fp->mode = O_WRONLY;
+   } else {
+      free(fp);
+      return NULL;
+   }
+
+   fp->fileno = open((char*) filename, fp->mode);
+   fp->read_buf = (char*)malloc(1024);
+   fp->read_ptr = fp->read_buf;
+   fp->read_end = fp->read_buf;
+   fp->status = 0;
+
+   return fp;
+}
+
+void fclose(FILE *fp) {
+   if (!fp || fp->status == -1) {
+      return;
+   }
+   free(fp->read_buf);
+   fp->status = -1;
+   free(fp);
+}
