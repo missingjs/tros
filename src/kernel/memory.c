@@ -342,9 +342,6 @@ void* sys_malloc(uint32_t size) {
             return NULL;
          }
 
-// page_dir_activate(running_thread());
-// thread_yield();
-
          memset(a, 0, PG_SIZE);
 
          /* 对于分配的小块内存,将desc置为相应内存块描述符,
@@ -354,9 +351,7 @@ void* sys_malloc(uint32_t size) {
          a->cnt = descs[desc_idx].blocks_per_arena;
          uint32_t block_idx;
 
-// printk("pid=%d a=%x cnt=%d paddr=%x arena cleared\n", sys_getpid(), a, a->cnt, addr_v2p(a));
          enum intr_status old_status = intr_disable();
-
          /* 开始将arena拆分成内存块,并添加到内存块描述符的free_list中 */
          for (block_idx = 0; block_idx < descs[desc_idx].blocks_per_arena; block_idx++)
          {
@@ -378,11 +373,13 @@ void* sys_malloc(uint32_t size) {
 }
 
 void* sys_malloc_kernel(uint32_t size) {
+   enum intr_status old_status = intr_disable();
    struct task_struct* cur = running_thread();
    uint32_t* cur_pagedir_bak = cur->pgdir;
    cur->pgdir = NULL;
    void* block = sys_malloc(size);
    cur->pgdir = cur_pagedir_bak;
+   intr_set_status(old_status);
    return block;
 }
 
@@ -517,8 +514,6 @@ void sys_free(void* ptr) {
    else
    { // 小于等于1024的内存块
       /* 先将内存块回收到free_list */
-// printk("pid=%d a=%x a->desc=%x a->cnt=%d a->large=%d paddr=%x\n",
-// sys_getpid(), a, a->desc, a->cnt, a->large, addr_v2p(a));
       list_append(&a->desc->free_list, &b->free_elem);
 
       /* 再判断此arena中的内存块是否都是空闲,如果是就释放arena */
@@ -538,11 +533,13 @@ void sys_free(void* ptr) {
 }
 
 void sys_free_kernel(void* ptr) {
+   enum intr_status old_status = intr_disable();
    struct task_struct* cur = running_thread();
    uint32_t* cur_pagedir_bak = cur->pgdir;
    cur->pgdir = NULL;
    sys_free(ptr);		         // 释放inode的内核空间
    cur->pgdir = cur_pagedir_bak;
+   intr_set_status(old_status);
 }
 
 void kfree(void* ptr) {

@@ -186,7 +186,7 @@ void bitmap_sync(struct partition* part, uint32_t bit_idx, uint8_t btmp_type) {
 /* 创建文件,若成功则返回文件描述符,否则返回-1 */
 int32_t file_create(struct dir* parent_dir, char* filename, uint8_t flag) {
    /* 后续操作的公共缓冲区 */
-   void* io_buf = sys_malloc(1024);
+   void* io_buf = kmalloc(1024);
    if (io_buf == NULL) {
       printk("in file_creat: sys_malloc for io_buf failed\n");
       return -1;
@@ -203,7 +203,7 @@ int32_t file_create(struct dir* parent_dir, char* filename, uint8_t flag) {
 
 /* 此inode要从堆中申请内存,不可生成局部变量(函数退出时会释放)
  * 因为file_table数组中的文件描述符的inode指针要指向它.*/
-   struct inode* new_file_inode = (struct inode*)sys_malloc(sizeof(struct inode)); 
+   struct inode* new_file_inode = (struct inode*)kmalloc(sizeof(struct inode)); 
    if (new_file_inode == NULL) {
       printk("file_create: sys_malloc for inode failded\n");
       rollback_step = 1;
@@ -255,7 +255,7 @@ int32_t file_create(struct dir* parent_dir, char* filename, uint8_t flag) {
    list_push(&cur_part->open_inodes, &new_file_inode->inode_tag);
    new_file_inode->i_open_cnts = 1;
 
-   sys_free(io_buf);
+   kfree(io_buf);
    return pcb_fd_install(fd_idx);
 
 /*创建文件需要创建相关的多个资源,若某步失败则会执行到下面的回滚步骤 */

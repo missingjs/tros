@@ -9,20 +9,6 @@
 
 #define READ_BUF_SIZE 1024
 
-// enum oflags {
-//    O_RDONLY,    // 只读
-//    O_WRONLY,    // 只写
-//    O_RDWR,      // 读写
-//    O_CREAT = 4  // 创建
-// };
-
-// /* 文件读写位置偏移量 */
-// enum whence {
-//    SEEK_SET = 1,
-//    SEEK_CUR,
-//    SEEK_END
-// };
-
 static char __stdin_buffer[2048];
 static FILE __stdin = {
    .fileno = 0,
@@ -63,7 +49,7 @@ static void itoa(uint32_t value, char** buf_ptr_addr, uint8_t base) {
 }
 
 /* 将参数ap按照格式format输出到字符串str,并返回替换后str长度 */
-uint32_t vsprintf(char* str, const char* format, va_list ap) {
+int vsprintf(char* str, const char* format, va_list ap) {
    char* buf_ptr = str;
    const char* index_ptr = format;
    char index_char = *index_ptr;
@@ -71,49 +57,49 @@ uint32_t vsprintf(char* str, const char* format, va_list ap) {
    char* arg_str;
    while(index_char) {
       if (index_char != '%') {
-	 *(buf_ptr++) = index_char;
-	 index_char = *(++index_ptr);
-	 continue;
+         *(buf_ptr++) = index_char;
+         index_char = *(++index_ptr);
+         continue;
       }
       index_char = *(++index_ptr);	 // 得到%后面的字符
       switch(index_char) {
-	 case 's':
-	    arg_str = va_arg(ap, char*);
-	    strcpy(buf_ptr, arg_str);
-	    buf_ptr += strlen(arg_str);
-	    index_char = *(++index_ptr);
-	    break;
+         case 's':
+            arg_str = va_arg(ap, char*);
+            strcpy(buf_ptr, arg_str);
+            buf_ptr += strlen(arg_str);
+            index_char = *(++index_ptr);
+            break;
 
-	 case 'c':
-	    *(buf_ptr++) = va_arg(ap, char);
-	    index_char = *(++index_ptr);
-	    break;
+         case 'c':
+            *(buf_ptr++) = va_arg(ap, char);
+            index_char = *(++index_ptr);
+            break;
 
-	 case 'd':
-	    arg_int = va_arg(ap, int);
-      /* 若是负数, 将其转为正数后,再正数前面输出个负号'-'. */
-	    if (arg_int < 0) {
-	       arg_int = 0 - arg_int;
-	       *buf_ptr++ = '-';
-	    }
-	    itoa(arg_int, &buf_ptr, 10);
-	    index_char = *(++index_ptr);
-	    break;
+         case 'd':
+            arg_int = va_arg(ap, int);
+            /* 若是负数, 将其转为正数后,再正数前面输出个负号'-'. */
+            if (arg_int < 0) {
+               arg_int = 0 - arg_int;
+               *buf_ptr++ = '-';
+            }
+            itoa(arg_int, &buf_ptr, 10);
+            index_char = *(++index_ptr);
+            break;
 
-	 case 'x':
-	    arg_int = va_arg(ap, int);
-	    itoa(arg_int, &buf_ptr, 16);
-	    index_char = *(++index_ptr); // 跳过格式字符并更新index_char
-	    break;
+         case 'x':
+            arg_int = va_arg(ap, int);
+            itoa(arg_int, &buf_ptr, 16);
+            index_char = *(++index_ptr); // 跳过格式字符并更新index_char
+            break;
       }
    }
-   return strlen(str);
+   return (int) strlen(str);
 }
 
 /* 同printf不同的地方就是字符串不是写到终端,而是写到buf中 */
-uint32_t sprintf(char* buf, const char* format, ...) {
+int sprintf(char* buf, const char* format, ...) {
    va_list args;
-   uint32_t retval;
+   int retval;
    va_start(args, format);
    retval = vsprintf(buf, format, args);
    va_end(args);
@@ -121,13 +107,13 @@ uint32_t sprintf(char* buf, const char* format, ...) {
 }
 
 /* 格式化输出字符串format */
-uint32_t printf(const char* format, ...) {
+int printf(const char* format, ...) {
    va_list args;
+   int n;
    va_start(args, format);	       // 使args指向format
-   char buf[1024] = {0};	       // 用于存储拼接后的字符串
-   vsprintf(buf, format, args);
+   n = vfprintf(stdout, format, args);
    va_end(args);
-   return write(1, buf, strlen(buf));
+   return n;
 }
 
 FILE *fopen(const char *filename, const char *mode) {
@@ -135,7 +121,7 @@ FILE *fopen(const char *filename, const char *mode) {
    if (mode[0] == 'r') {
       fp->flags = O_RDONLY;
    } else if (mode[0] == 'w') {
-      fp->flags = O_WRONLY;
+      fp->flags = O_WRONLY | O_CREAT;
    } else {
       free(fp);
       return NULL;
@@ -215,4 +201,32 @@ char *fgets(char *str, int count, FILE *fp) {
    }
    *out = 0;
    return out != str ? str : NULL;
+}
+
+int fputs(const char *str, FILE *fp) {
+   int block_size = 512;
+   while (*str) {
+      const char *p = str, *end = p + block_size;
+      while (*p && p != end) {
+         ++p;
+      }
+      write(fp->fileno, str, p - str);
+      str = p;
+   }
+   return 1;
+}
+
+int fprintf(FILE *fp, const char* format, ...) {
+   va_list args;
+   int n;
+   va_start(args, format);	       // 使args指向format
+   n = vfprintf(fp, format, args);
+   va_end(args);
+   return n;
+}
+
+int vfprintf(FILE *fp, const char *format, va_list ap) {
+   char buf[1024] = {0};
+   int n = vsprintf(buf, format, ap);
+   return (int) write(fp->fileno, buf, n);
 }

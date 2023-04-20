@@ -81,8 +81,8 @@ struct inode* inode_open(struct partition* part, uint32_t inode_no) {
    while (elem != &part->open_inodes.tail) {
       inode_found = elem2entry(struct inode, inode_tag, elem);
       if (inode_found->i_no == inode_no) {
-	 inode_found->i_open_cnts++;
-	 return inode_found;
+         inode_found->i_open_cnts++;
+         return inode_found;
       }
       elem = elem->next;
    }
@@ -134,11 +134,12 @@ void inode_close(struct inode* inode) {
       list_remove(&inode->inode_tag);	  // 将I结点从part->open_inodes中去掉
 
    /* inode_open时为实现inode被所有进程共享,已经在sys_malloc为inode分配了内核空间 */
-      struct task_struct* cur = running_thread();
-      uint32_t* cur_pagedir_bak = cur->pgdir;
-      cur->pgdir = NULL;
-      sys_free(inode);		         // 释放inode的内核空间
-      cur->pgdir = cur_pagedir_bak;
+      // struct task_struct* cur = running_thread();
+      // uint32_t* cur_pagedir_bak = cur->pgdir;
+      // cur->pgdir = NULL;
+      // sys_free(inode);		         // 释放inode的内核空间
+      // cur->pgdir = cur_pagedir_bak;
+      kfree(inode);
    }
    intr_set_status(old_status);
 }
