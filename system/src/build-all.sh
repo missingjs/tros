@@ -3,6 +3,7 @@
 self_dir=$(cd $(dirname $0) && pwd)
 proj_dir=$(realpath $self_dir/../..)
 rootfs_dir=$proj_dir/system/rootfs
+crt_dir=$proj_dir/system/crt
 CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers"
 
 function build_exec()
@@ -14,7 +15,7 @@ function build_exec()
     [ -e $target_dir ] || mkdir -p $target_dir
 
     set -x
-    gcc $CFLAGS -I$proj_dir/include -I$proj_dir/include/lib *.c || exit
+    gcc $CFLAGS -I$crt_dir -I$proj_dir/include -I$proj_dir/include/lib *.c || exit
     ld -m elf_i386 -o $bin_name *.o $proj_dir/system/crt/mini-crt.a || exit
     mv $bin_name $target_dir
     set +x

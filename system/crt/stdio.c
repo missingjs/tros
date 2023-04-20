@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "stdio.h"
 #include "string.h"
 #include "syscall.h"
@@ -6,19 +7,46 @@
 #define va_arg(ap, t) *((t*)(ap += 4))	  // ap指向下一个参数并返回其值
 #define va_end(ap) ap = NULL		  // 清除ap
 
-enum oflags {
-   O_RDONLY,>---  // 只读
-   O_WRONLY,>---  // 只写
-   O_RDWR,>-  // 读写
-   O_CREAT = 4>-  // 创建
-};
+#define READ_BUF_SIZE 1024
 
-/* 文件读写位置偏移量 */
-enum whence {
-   SEEK_SET = 1,
-   SEEK_CUR,
-   SEEK_END
+// enum oflags {
+//    O_RDONLY,    // 只读
+//    O_WRONLY,    // 只写
+//    O_RDWR,      // 读写
+//    O_CREAT = 4  // 创建
+// };
+
+// /* 文件读写位置偏移量 */
+// enum whence {
+//    SEEK_SET = 1,
+//    SEEK_CUR,
+//    SEEK_END
+// };
+
+static char __stdin_buffer[2048];
+static FILE __stdin = {
+   .fileno = 0,
+   .flags = O_RDONLY,
+   .status = 0,
+   .read_buf = __stdin_buffer,
+   .read_ptr = __stdin_buffer,
+   .read_end = __stdin_buffer,
 };
+FILE *stdin = &__stdin;
+
+static FILE __stdout = {
+   .fileno = 1,
+   .flags = O_WRONLY,
+   .status = 0,
+};
+FILE *stdout = &__stdout;
+
+static FILE __stderr = {
+   .fileno = 2,
+   .flags = O_WRONLY,
+   .status = 0,
+};
+FILE *stderr = &__stderr;
 
 /* 将整型转换成字符(integer to ascii) */
 static void itoa(uint32_t value, char** buf_ptr_addr, uint8_t base) {
@@ -105,16 +133,16 @@ uint32_t printf(const char* format, ...) {
 FILE *fopen(const char *filename, const char *mode) {
    FILE *fp = (FILE *)malloc(sizeof(FILE));
    if (mode[0] == 'r') {
-      fp->mode = O_RDONLY;
+      fp->flags = O_RDONLY;
    } else if (mode[0] == 'w') {
-      fp->mode = O_WRONLY;
+      fp->flags = O_WRONLY;
    } else {
       free(fp);
       return NULL;
    }
 
-   fp->fileno = open((char*) filename, fp->mode);
-   fp->read_buf = (char*)malloc(1024);
+   fp->fileno = open((char*) filename, fp->flags);
+   fp->read_buf = (char*)malloc(READ_BUF_SIZE);
    fp->read_ptr = fp->read_buf;
    fp->read_end = fp->read_buf;
    fp->status = 0;
@@ -126,7 +154,65 @@ void fclose(FILE *fp) {
    if (!fp || fp->status == -1) {
       return;
    }
+   close(fp->fileno);
    free(fp->read_buf);
    fp->status = -1;
    free(fp);
+}
+
+static int load_read_buffer(FILE *fp) {
+   assert (fp->read_ptr == fp->read_end);
+
+   char *const rdbuf_end = fp->read_buf + READ_BUF_SIZE;
+   if (fp->read_end == rdbuf_end) {
+      fp->read_ptr = fp->read_buf;
+      fp->read_end = fp->read_buf;
+   }
+
+   int size = rdbuf_end - fp->read_ptr;
+   int r = read(fp->fileno, fp->read_buf, size);
+   if (r > 0) {
+      fp->read_end = fp->read_ptr + r;
+   }
+   return r;
+}
+
+char *fgets(char *str, int count, FILE *fp) {
+   char *out = str, *out_end = str + count;
+   if (count <= 0) {
+      *str = 0;
+      return str;
+   }
+
+   while (1) {
+      if (fp->read_ptr == fp->read_end) {
+         int n = load_read_buffer(fp);
+         if (n < 0) {
+            *out = 0;
+            return NULL;
+         } else if (n == 0) {
+            break;
+         }
+      }
+
+      char *in = fp->read_ptr, *end = fp->read_end;
+      while (in != end && out != out_end && *in != '\n') {
+         *out++ = *in++;
+      }
+      fp->read_ptr = in;
+
+      if (in != end) {
+         if (*in == '\n' && out != out_end) {
+            *out++ = '\n';
+            ++fp->read_ptr;
+         }
+         break;
+      }
+
+      if (out == out_end) {
+         break;
+      }
+   }
+   *out = 0;
+   return out != str ? str : NULL;
 }

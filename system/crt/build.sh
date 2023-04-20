@@ -5,9 +5,7 @@ proj_dir=$(realpath $self_dir/../..)
 
 cd $self_dir
 
-# BIN="cat"
-CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers -I$proj_dir/include -I$proj_dir/include/lib"
-# OBJS="$proj_dir/build/lib/stdio.o $proj_dir/build/lib/string.o $proj_dir/build/lib/user/assert.o $proj_dir/build/lib/user/syscall.o"
+CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers -I. -I$proj_dir/include -I$proj_dir/include/lib"
 
 rm *.o 2>/dev/null
 
