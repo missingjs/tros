@@ -195,3 +195,11 @@ void msleep(uint32_t millis) {
 void yield(void) {
    _syscall0(SYS_YIELD);
 }
+
+sighandler_t signal(int32_t signum, sighandler_t handler) {
+   return (sighandler_t) _syscall2(SYS_SIGNAL, signum, handler);
+}
+
+int32_t kill(pid_t pid, int32_t signum) {
+   return _syscall2(SYS_KILL, pid, signum);
+}

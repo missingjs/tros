@@ -3,6 +3,7 @@
 #include "kernel/bitmap.h"
 #include "kernel/list.h"
 #include "kernel/memory.h"
+#include "kernel/signal.h"
 #include "stdint.h"
 
 #define TASK_NAME_LEN 16
@@ -98,6 +99,8 @@ struct task_struct {
    uint32_t cwd_inode_nr;	 // 进程所在的工作目录的inode编号
    pid_t parent_pid;		 // 父进程pid
    int8_t  exit_status;         // 进程结束时自己调用exit传入的参数
+   uint32_t signal_bits;    // bitmap of pending signals
+   sighandler_t sighandlers[MAX_SIGNALS];
    uint32_t stack_magic;	 // 用这串数字做栈的边界标记,用于检测栈的溢出
 };
 

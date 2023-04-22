@@ -61,5 +61,7 @@ void syscall_init(void) {
    syscall_table[SYS_HELP]	    = sys_help;
    syscall_table[SYS_MSLEEP]   = sys_msleep;
    syscall_table[SYS_YIELD]    = sys_yield;
+   syscall_table[SYS_SIGNAL]   = sys_signal;
+   syscall_table[SYS_KILL]     = sys_kill;
    put_str("syscall_init done\n");
 }

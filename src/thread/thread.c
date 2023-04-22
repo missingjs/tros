@@ -131,6 +131,10 @@ void init_thread(struct task_struct* pthread, char* name, int prio) {
    }
    pthread->cwd_inode_nr = 0;	    // 以根目录做为默认工作路径
    pthread->parent_pid = -1;        // -1表示没有父进程
+   pthread->signal_bits = 0;
+   for (int i = 0; i < MAX_SIGNALS; ++i) {
+      pthread->sighandlers[i] = SIG_DFL;
+   }
    pthread->stack_magic = 0x19870916;	  // 自定义的魔数
 }
 
