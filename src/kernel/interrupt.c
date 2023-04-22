@@ -1,8 +1,10 @@
 #include "kernel/global.h"
 #include "kernel/interrupt.h"
-#include "lib/kernel/io.h"
-#include "lib/kernel/print.h"
-#include "lib/stdint.h"
+#include "kernel/io.h"
+#include "kernel/print.h"
+#include "kernel/stdio-kernel.h"
+#include "stdint.h"
+#include "thread/thread.h"
 
 #define PIC_M_CTRL 0x20	       // 这里用的可编程中断控制器是8259A,主片的控制端口是0x20
 #define PIC_M_DATA 0x21	       // 主片的数据端口是0x21
@@ -102,9 +104,14 @@ static void general_intr_handler(uint8_t vec_nr) {
    set_cursor(88);	// 从第2行第8个字符开始打印
    put_str(intr_name[vec_nr]);
    if (vec_nr == 14) {	  // 若为Pagefault,将缺失的地址打印出来并悬停
+      uint32_t ebp;
+      asm ("mov %%ebp, %0" : "=g" (ebp));
+      struct intr_stack *stk = (struct intr_stack *)(ebp + 8);
       int page_fault_vaddr = 0; 
       asm ("movl %%cr2, %0" : "=r" (page_fault_vaddr));	  // cr2是存放造成page_fault的地址
-      put_str("\npage fault addr is 0x");put_int(page_fault_vaddr); 
+      printk("\npage fault addr is 0x%x\n", page_fault_vaddr);
+      printk("cause eip is %x", stk->eip);
+      // put_str("\npage fault addr is 0x");put_int(page_fault_vaddr); 
    }
    put_str("\n!!!!!!!      excetion message end    !!!!!!!!\n");
   // 能进入中断处理程序就表示已经处在关中断情况下,

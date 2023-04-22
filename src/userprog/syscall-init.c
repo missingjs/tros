@@ -14,7 +14,7 @@
 #include "userprog/syscall-init.h"
 #include "userprog/wait_exit.h"
 
-#define syscall_nr 32
+#define syscall_nr 64
 typedef void* syscall;
 syscall syscall_table[syscall_nr];
 
@@ -63,5 +63,6 @@ void syscall_init(void) {
    syscall_table[SYS_YIELD]    = sys_yield;
    syscall_table[SYS_SIGNAL]   = sys_signal;
    syscall_table[SYS_KILL]     = sys_kill;
+   syscall_table[SYS_SIGRETURN] = sys_sigreturn;
    put_str("syscall_init done\n");
 }

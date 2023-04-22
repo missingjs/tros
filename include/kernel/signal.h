@@ -12,6 +12,7 @@ typedef void (*sighandler_t)(int num);
 
 sighandler_t sys_signal(int sig, sighandler_t handler);
 int sys_kill(int pid, int signum);
+void sys_sigreturn(void);
 
 #define SIG_IGN ((sighandler_t)0x01)
 #define SIG_DFL ((sighandler_t)0x02)

@@ -37,7 +37,8 @@ enum SYSCALL_NR {
    SYS_MSLEEP,
    SYS_YIELD,
    SYS_SIGNAL,
-   SYS_KILL
+   SYS_KILL,
+   SYS_SIGRETURN
 };
 uint32_t getpid(void);
 uint32_t write(int32_t fd, const void* buf, uint32_t count);

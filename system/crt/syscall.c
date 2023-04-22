@@ -203,3 +203,7 @@ sighandler_t signal(int32_t signum, sighandler_t handler) {
 int32_t kill(pid_t pid, int32_t signum) {
    return _syscall2(SYS_KILL, pid, signum);
 }
+
+void sigreturn() {
+   _syscall0(SYS_SIGRETURN);
+}
