@@ -153,6 +153,14 @@ done:
 
 /* 用path指向的程序替换当前进程 */
 int32_t sys_execv(const char* path, const char* argv[]) {
+   struct task_struct* cur = running_thread();
+
+   // clear pending signals, reset all signal handlers
+   cur->signal_bits = 0;
+   for (int i = 0; i < MAX_SIGNALS; ++i) {
+      cur->sighandlers[i] = SIG_DFL;
+   }
+
    uint32_t argc = 0;
    while (argv[argc]) {
       argc++;
@@ -162,7 +170,6 @@ int32_t sys_execv(const char* path, const char* argv[]) {
       return -1;
    }
    
-   struct task_struct* cur = running_thread();
    /* 修改进程名 */
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;

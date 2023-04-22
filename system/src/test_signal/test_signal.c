@@ -3,26 +3,24 @@
 #include "string.h"
 #include "syscall.h"
 
-static void sig_int_handler(int signum) {
-    printf("handling signal %d\n", signum);
-    uint32_t ebp;
-    asm ("mov %%ebp, %0" : "=g" (ebp));
-    printf("return address: %x\n", *(uint32_t*)(ebp + 4));
+void child_sigint_handler(int signum) {
+    printf("child process %d is handling signal %d\n", getpid(), signum);
 }
 
-int values[20];
-
 int main(void) {
-    for (int i = 0; i < sizeof(values)/sizeof(int); ++i) {
-        if (values[i] != 0) {
-            printf("values[%d] != 0\n", i);
-        }
-    }
-    printf("address of void sig_int_handler(int): %x\n", &sig_int_handler);
-    signal(SIGINT, sig_int_handler);
+    signal(SIGINT, child_sigint_handler);
 
-    int pid = getpid();
-    kill(pid, SIGINT);
-    printf("after kill\n");
+    int pid = fork();
+    if (pid == 0) {
+        while (1);
+    } else {
+        kill(pid, SIGINT);
+        msleep(5000);
+        kill(pid, SIGHUP);
+        int st;
+        wait(&st);
+        printf("[parent] detect child process exit\n");
+    }
+
     return 0;
 }

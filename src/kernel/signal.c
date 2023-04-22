@@ -5,8 +5,10 @@
 #include "string.h"
 #include "thread/thread.h"
 #include "user/syscall.h"
+#include "userprog/wait_exit.h"
 
 static void setup_frame(struct intr_stack *stk, int signum, sighandler_t handler);
+static void handle_signal_default(int signum);
 
 sighandler_t sys_signal(int sig, sighandler_t handler) {
     ASSERT(sig > 0 && sig < MAX_SIGNALS);
@@ -34,10 +36,17 @@ void check_signal() {
     struct task_struct *current = running_thread();
     for (int i = 0; i < MAX_SIGNALS; ++i) {
         if (current->signal_bits & (1 << i)) {
+            sighandler_t handler = current->sighandlers[i];
+            if (handler == SIG_IGN) {
+                continue;
+            } else if (handler == SIG_DFL) {
+                handle_signal_default(i);
+                continue;
+            }
             asm ("mov %%ebp, %0" : "=g" (ebp));
             // skip 'last ebp' and 'return address'
             stk = (struct intr_stack *)(ebp + 8);
-            setup_frame(stk, i, current->sighandlers[i]);
+            setup_frame(stk, i, handler);
             current->signal_bits &= ~(1 << i);
             break;
         }
@@ -99,4 +108,9 @@ void sys_sigreturn(void) {
     // restore interrupt stack
     void *backup = (void*) stk->eip;
     memcpy(stk, backup, sizeof(struct intr_stack));
+}
+
+static void handle_signal_default(int signum) {
+    printk("process %d terminate by signal %d\n", sys_getpid(), signum);
+    sys_exit(-1);
 }

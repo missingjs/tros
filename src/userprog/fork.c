@@ -2,6 +2,7 @@
 #include "kernel/debug.h"
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
+#include "kernel/signal.h"
 #include "shell/pipe.h"
 #include "string.h"
 #include "thread/thread.h"    
@@ -126,6 +127,13 @@ static void update_file_open_cnts(struct task_struct *thread)
    }
 }
 
+static void copy_signal_related(struct task_struct *child_thread, struct task_struct *parent_thread) {
+   for (int i = 0; i < MAX_SIGNALS; ++i) {
+      child_thread->sighandlers[i] = parent_thread->sighandlers[i];
+   }
+   child_thread->signal_bits = 0;
+}
+
 /* 拷贝父进程本身所占资源给子进程 */
 static int32_t copy_process(struct task_struct* child_thread, struct task_struct* parent_thread) {
    /* 内核缓冲区,作为父进程用户空间的数据复制到子进程用户空间的中转 */
@@ -153,6 +161,9 @@ static int32_t copy_process(struct task_struct* child_thread, struct task_struct
 
    /* e 更新 struct file 的打开数 */
    update_file_open_cnts(child_thread);
+
+   // copy signal handlers, without pending signals
+   copy_signal_related(child_thread, parent_thread);
 
    mfree_page(PF_KERNEL, buf_page, 1);
    return 0;
