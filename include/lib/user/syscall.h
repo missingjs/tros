@@ -72,4 +72,5 @@ void msleep(uint32_t millis);
 void yield(void);
 sighandler_t signal(int32_t signum, sighandler_t handler);
 int32_t kill(pid_t pid, int32_t signum);
+void sigreturn(void);
 #endif

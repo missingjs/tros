@@ -16,7 +16,7 @@ function build_exec()
 
     set -x
     gcc $CFLAGS -I$crt_dir -I$proj_dir/include -I$proj_dir/include/lib *.c || exit
-    ld -m elf_i386 -o $bin_name *.o $proj_dir/system/crt/mini-crt.a || exit
+    ld -m elf_i386 -o $bin_name *.o $proj_dir/system/crt/mini-crt.a $proj_dir/build/kernel/libc.a || exit
     mv $bin_name $target_dir
     set +x
 }
@@ -25,7 +25,7 @@ cd $self_dir
 
 for d in $(ls); do
     [ -d $d ] || continue
-    cd $d
+    cd $d && echo "enter $d"
     [ -e exec.rule ] && build_exec $(cat exec.rule)
-    cd ..
+    cd .. && echo "leave $d"
 done

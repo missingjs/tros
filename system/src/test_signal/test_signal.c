@@ -1,9 +1,9 @@
-#include "signal.h"
+#include "kernel/signal.h"
 #include "stdio.h"
 #include "string.h"
-#include "syscall.h"
+#include "user/syscall.h"
 
-void child_sigint_handler(int signum) {
+static void child_sigint_handler(int signum) {
     printf("child process %d is handling signal %d\n", getpid(), signum);
 }
 

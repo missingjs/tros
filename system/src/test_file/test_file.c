@@ -1,7 +1,6 @@
 #include "stdio.h"
-#include "stdlib.h"
 #include "string.h"
-#include "syscall.h"
+#include "user/syscall.h"
 
 int main(void) {
     char filename[] = "/test-file.txt";
