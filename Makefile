@@ -76,7 +76,7 @@ binary: $(MBR_BIN) $(LOADER_BIN) $(KERNEL_BIN) $(KERNEL_LIBC)
 deploy:
 	dd if=$(MBR_BIN) of=$(PRIMARY_HD) bs=512 count=1 conv=notrunc
 	dd if=$(LOADER_BIN) of=$(PRIMARY_HD) bs=512 count=4 seek=2 conv=notrunc
-	dd if=$(KERNEL_BIN) of=$(PRIMARY_HD) bs=512 count=200 seek=9 conv=notrunc
+	dd if=$(KERNEL_BIN) of=$(PRIMARY_HD) bs=512 count=255 seek=9 conv=notrunc
 
 clean:
 	rm -f $(C_OBJS) $(AS_OBJS) $(C_DEPS) $(AS_DEPS) $(KERNEL_BIN) $(MBR_BIN) $(LOADER_BIN)
