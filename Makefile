@@ -22,9 +22,13 @@ LD := ld
 # LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main --strip-all
 LDFLAGS := -m elf_i386 -Ttext $(ENTRY_POINT) -e main
 
+AR := ar
+
 MBR_BIN := ./build/boot/mbr.bin
 LOADER_BIN := ./build/boot/loader.bin
 KERNEL_BIN := ./build/kernel/kernel.bin
+KERNEL_LIBC := ./build/kernel/libc.a
+LIBC_OBJS := ./build/lib/stdio.o ./build/lib/string.o ./build/lib/user/assert.o ./build/lib/user/syscall.o
 
 SRC_DIRS := $(shell find ./src/ -type d)
 BUILD_DIRS := $(SRC_DIRS:./src/%=./build/%)
@@ -55,6 +59,9 @@ mkdirs:
 sinclude $(C_DEPS)
 sinclude $(AS_DEPS)
 
+$(KERNEL_LIBC) : $(KERNEL_BIN)
+	$(AR) rcs $(KERNEL_LIBC) $(LIBC_OBJS)
+
 $(KERNEL_BIN) : $(AS_OBJS) $(C_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^
 
@@ -64,7 +71,7 @@ $(MBR_BIN) : src/boot/mbr.S include/boot/boot.inc
 $(LOADER_BIN) : src/boot/loader.S include/boot/boot.inc
 	$(AS) -I ./include -o $@ $<
 
-binary: $(MBR_BIN) $(LOADER_BIN) $(KERNEL_BIN)
+binary: $(MBR_BIN) $(LOADER_BIN) $(KERNEL_BIN) $(KERNEL_LIBC)
 
 deploy:
 	dd if=$(MBR_BIN) of=$(PRIMARY_HD) bs=512 count=1 conv=notrunc
