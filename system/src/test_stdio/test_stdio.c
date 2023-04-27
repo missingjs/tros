@@ -1,6 +1,7 @@
 #include "stdio.h"
-#include "stdlib.h"
 #include "string.h"
+
+#define NULL ((void*)0)
 
 int main(void)
 {
