@@ -48,11 +48,18 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
     struct n_tty_data *tdata = (struct n_tty_data *)tty->disc_data;
     while (p != end) {
         unsigned char ch = *p++;
-        if (ch == '\r') {
-            ch = '\n';
+        switch (ch) {
+            case '\b':
+                --tdata->line_size;
+                break;
+            case '\r':
+                ch = '\n';
+                __attribute__ ((fallthrough));
+            default:
+                tdata->line_buf[tdata->line_size] = ch;
+                ++tdata->line_size;
+                break;
         }
-        tdata->line_buf[tdata->line_size] = ch;
-        ++tdata->line_size;
 
         // ECHO to output
         console_put_char((uint8_t) ch);
