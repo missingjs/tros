@@ -1,4 +1,3 @@
-#include "device/terminal.h"
 #include "fs/file.h"
 #include "fs/fs.h"
 #include "fs/inode.h"
@@ -20,39 +19,11 @@ static int32_t disk_file_write(struct file *, const char *, uint32_t);
 static int32_t disk_file_release(struct file *);
 static int32_t disk_file_lseek(struct file *filp, int32_t offset, int32_t whence);
 
-static int32_t read_from_terminal(struct file* file UNUSED, char* buf, uint32_t count) {
-   return terminal_read(buf, count);
-}
-static int32_t write_to_terminal(struct file *filp UNUSED, const char *content, uint32_t size) {
-   return terminal_write(content, size);
-}
-
 static struct file_operations disk_file_ops = {
    .llseek  = disk_file_lseek,
    .read    = disk_file_read,
    .write   = disk_file_write,
    .release = disk_file_release,
-};
-
-static struct file_operations stdin_file_ops = {
-   .llseek  = no_llseek_fn,
-   .read    = read_from_terminal,
-   .write   = no_write_fn,
-   .release = no_release_fn,
-};
-
-static struct file_operations stdout_file_ops = {
-   .llseek  = no_llseek_fn,
-   .read    = no_read_fn,
-   .write   = write_to_terminal,
-   .release = no_release_fn,
-};
-
-static struct file_operations stderr_file_ops = {
-   .llseek  = no_llseek_fn,
-   .read    = no_read_fn,
-   .write   = write_to_terminal,
-   .release = no_release_fn,
 };
 
 /* 文件表 */
@@ -64,25 +35,6 @@ static struct inode dummy_inode;
 // struct inode *get_dummy_inode(void) {
 //    return &dummy_inode;
 // }
-static void initialize_stdio(void) {
-   struct file *stdin = &file_table[0];
-   init_file_struct(stdin);
-   atomic_inc(&stdin->count);
-   stdin->op = &stdin_file_ops;
-   stdin->fd_flag = O_RDONLY;
-
-   struct file *stdout = &file_table[1];
-   init_file_struct(stdout);
-   atomic_inc(&stdout->count);
-   stdout->op = &stdout_file_ops;
-   stdout->fd_flag = O_WRONLY;
-
-   struct file *stderr = &file_table[2];
-   init_file_struct(stderr);
-   atomic_inc(&stderr->count);
-   stderr->op = &stderr_file_ops;
-   stderr->fd_flag = O_WRONLY;
-}
 
 void file_table_init(void) {
    /* 初始化文件表 */
@@ -91,7 +43,6 @@ void file_table_init(void) {
    while (fd_idx < MAX_FILE_OPEN) {
       file_table[fd_idx++].fd_inode = NULL;
    }
-   initialize_stdio();
 }
 
 void release_free_slot_in_global(int32_t fd) {

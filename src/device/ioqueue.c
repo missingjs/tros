@@ -56,6 +56,31 @@ int ioq_getchar(struct ioqueue* ioq) {
    return (unsigned char) byte;
 }
 
+int ioq_read_some(struct ioqueue *ioq, char *buf, uint32_t limit) {
+   lock_acquire(&ioq->lock);
+
+   while (!ioq->closed && is_ioq_empty(ioq)) {
+      cv_wait(&ioq->cond_data_avail);
+   }
+
+   if (ioq->closed && is_ioq_empty(ioq)) {
+      lock_release(&ioq->lock);
+      return 0;
+   }
+
+   char *p = buf, *end = buf + limit;
+   while (!is_ioq_empty(ioq) && p != end) {
+      char ch = ioq->buf[ioq->tail];
+      ioq->tail = next_pos(ioq->tail);
+      *p++ = ch;
+   }
+
+   int size = p - buf;
+   cv_notify_one(&ioq->cond_space_avail);
+   lock_release(&ioq->lock);
+   return size;
+}
+
 /* 生产者往ioq队列中写入一个字符byte */
 bool ioq_putchar(struct ioqueue* ioq, char byte) {
    lock_acquire(&ioq->lock);
@@ -75,6 +100,30 @@ bool ioq_putchar(struct ioqueue* ioq, char byte) {
    cv_notify_one(&ioq->cond_data_avail);
    lock_release(&ioq->lock);
    return true;
+}
+
+int ioq_write_some(struct ioqueue *ioq, const char *buf, uint32_t count) {
+   lock_acquire(&ioq->lock);
+
+   while (!ioq->closed && is_ioq_full(ioq)) {
+       cv_wait(&ioq->cond_space_avail);
+   }
+
+   if (ioq->closed) {
+      lock_release(&ioq->lock);
+      return 0;
+   }
+
+   const char *p = buf, *end = buf + count;
+   while (!is_ioq_full(ioq) && p != end) {
+      ioq->buf[ioq->head] = *p++;
+      ioq->head = next_pos(ioq->head);
+   }
+
+   int size = p - buf;
+   cv_notify_one(&ioq->cond_data_avail);
+   lock_release(&ioq->lock);
+   return size;
 }
 
 /* 返回环形缓冲区中的数据长度 */
