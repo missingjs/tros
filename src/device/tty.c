@@ -13,6 +13,8 @@ struct n_tty_data {
     int line_size;
 };
 
+static void echo(uint8_t ch);
+
 static void n_tty_data_init(struct n_tty_data *data) {
     ioqueue_init(&data->buffer);
 }
@@ -62,7 +64,8 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
         }
 
         // ECHO to output
-        console_put_char((uint8_t) ch);
+        // console_put_char((uint8_t) ch);
+        echo((uint8_t)ch);
 
         if (tdata->line_size == N_TTY_LINE_BUF_SIZE || ch == '\n') {
             // copy line content to buffer
@@ -74,6 +77,16 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
             }
             tdata->line_size = len;
         }
+    }
+}
+
+static void echo(uint8_t ch) {
+    switch (ch) {
+        case 'D' ^ 0x40:
+            console_put_str("^D");
+            break;
+        default:
+            console_put_char(ch);
     }
 }
 

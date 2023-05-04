@@ -108,7 +108,7 @@ static char keymap[][2] = {
 /* 键盘中断处理程序 */
 static void intr_keyboard_handler(void) {
 
-/* 这次中断发生前的上一次中断,以下任意三个键是否有按下 */
+   /* 这次中断发生前的上一次中断,以下任意三个键是否有按下 */
    bool ctrl_down_last = ctrl_status;
    bool shift_down_last = shift_status;
    bool caps_lock_last = caps_lock_status;
@@ -116,14 +116,14 @@ static void intr_keyboard_handler(void) {
    bool break_code;
    uint16_t scancode = inb(KBD_BUF_PORT);
 
-/* 若扫描码是e0开头的,表示此键的按下将产生多个扫描码,
- * 所以马上结束此次中断处理函数,等待下一个扫描码进来*/
+   /* 若扫描码是e0开头的,表示此键的按下将产生多个扫描码,
+    * 所以马上结束此次中断处理函数,等待下一个扫描码进来*/
    if (scancode == 0xe0) {
       ext_scancode = true;    // 打开e0标记
       return;
    }
 
-/* 如果上次是以0xe0开头,将扫描码合并 */
+   /* 如果上次是以0xe0开头,将扫描码合并 */
    if (ext_scancode) {
       scancode = ((0xe000) | scancode);
       ext_scancode = false;   // 关闭e0标记
@@ -149,15 +149,16 @@ static void intr_keyboard_handler(void) {
       return;   // 直接返回结束此次中断处理程序
 
    }
+
    /* 若为通码,只处理数组中定义的键以及alt_right和ctrl键,全是make_code */
-   else if ((scancode > 0x00 && scancode < 0x3b) || \
-           (scancode == alt_r_make) || \
+   if ((scancode > 0x00 && scancode < 0x3b) ||
+           (scancode == alt_r_make) ||
            (scancode == ctrl_r_make)) {
       bool shift = false;  // 判断是否与shift组合,用来在一维数组中索引对应的字符
-      if ((scancode < 0x0e) || (scancode == 0x29) || \
-            (scancode == 0x1a) || (scancode == 0x1b) || \
-            (scancode == 0x2b) || (scancode == 0x27) || \
-            (scancode == 0x28) || (scancode == 0x33) || \
+      if ((scancode < 0x0e) || (scancode == 0x29) ||
+            (scancode == 0x1a) || (scancode == 0x1b) ||
+            (scancode == 0x2b) || (scancode == 0x27) ||
+            (scancode == 0x28) || (scancode == 0x33) ||
             (scancode == 0x34) || (scancode == 0x35)) {
         /****** 代表两个字母的键 ********
              0x0e 数字'0'~'9',字符'-',字符'='
@@ -194,8 +195,18 @@ static void intr_keyboard_handler(void) {
             * cur_char的asc码-字符a的asc码, 此差值比较小,
             * 属于asc码表中不可见的字符部分.故不会产生可见字符.
             * 我们在shell中将ascii值为l-a和u-a的分别处理为清屏和删除输入的快捷键*/
-         if ((ctrl_down_last && cur_char == 'l') || (ctrl_down_last && cur_char == 'u')) {
-            cur_char -= 'a';
+         // if ((ctrl_down_last && cur_char == 'l') || (ctrl_down_last && cur_char == 'u')) {
+         //    cur_char -= 'a';
+         // }
+         if (ctrl_down_last) {
+            if (cur_char >= 'a' && cur_char <= 'z') {
+               cur_char -= 0x20;
+            }
+            if (cur_char >= 'A' && cur_char < 'a') {
+               cur_char -= 0x40;
+            } else {
+               return;
+            }
          }
          /****************************************************************/
          unsigned char _buf[1];
