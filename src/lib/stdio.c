@@ -159,7 +159,7 @@ static int load_read_buffer(FILE *fp) {
    }
 
    int size = rdbuf_end - fp->read_ptr;
-   int r = read(fp->fileno, fp->read_buf, size);
+   int r = read(fp->fileno, fp->read_ptr, size);
    if (r > 0) {
       fp->read_end = fp->read_ptr + r;
    }
