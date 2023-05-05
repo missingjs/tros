@@ -8,6 +8,7 @@
 #define N_TTY_LINE_BUF_SIZE 1024
 
 #define CTRL_D ('D' ^ 0x40)
+#define CTRL_U ('U' ^ 0x40)
 
 struct n_tty_data {
     struct ioqueue buffer;
@@ -50,6 +51,14 @@ static int32_t n_tty_write(struct tty_struct *tty UNUSED, struct file *file UNUS
     return (int32_t) nr;
 }
 
+static void clear_line_input(struct n_tty_data *tdata) {
+    int n = tdata->line_size;
+    while (n--) {
+        echo((uint8_t)'\b');
+    }
+    tdata->line_size = 0;
+}
+
 static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, uint32_t count) {
     const unsigned char *p = buf, *end = buf + count;
     struct n_tty_data *tdata = (struct n_tty_data *)tty->disc_data;
@@ -59,6 +68,9 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
             case '\b':
                 --tdata->line_size;
                 break;
+            case CTRL_U:
+                clear_line_input(tdata);
+                continue;
             case '\r':
                 ch = '\n';
                 __attribute__ ((fallthrough));

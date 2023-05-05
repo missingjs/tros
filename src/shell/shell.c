@@ -183,7 +183,7 @@ static void cmd_execute(uint32_t argc, char **argv)
          { // 按理说程序正确的话不会执行到这句,fork出的进程便是shell子进程
             panic("my_shell: no child\n");
          }
-         printf("child_pid %d, it's status: %d\n", child_pid, status);
+         // printf("child_pid %d, it's status: %d\n", child_pid, status);
       }
       else
       { // 子进程
