@@ -32,7 +32,7 @@ struct Elf32_Ehdr {
 
 /* 程序头表Program header.就是段描述头 */
 struct Elf32_Phdr {
-   Elf32_Word p_type;		 // 见下面的enum segment_type
+   Elf32_Word p_type;       // 见下面的enum segment_type
    Elf32_Off  p_offset;
    Elf32_Addr p_vaddr;
    Elf32_Addr p_paddr;
@@ -54,14 +54,14 @@ enum segment_type {
 };
 
 /* 将文件描述符fd指向的文件中,偏移为offset,大小为filesz的段加载到虚拟地址为vaddr的内存 */
-static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t vaddr) {
+static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t vaddr, uint32_t memsz) {
    uint32_t vaddr_first_page = vaddr & 0xfffff000;    // vaddr地址所在的页框
    uint32_t size_in_first_page = PG_SIZE - (vaddr & 0x00000fff);     // 加载到内存后,文件在第一个页框中占用的字节大小
    uint32_t occupy_pages = 0;
    /* 若一个页框容不下该段 */
-   if (filesz > size_in_first_page) {
-      uint32_t left_size = filesz - size_in_first_page;
-      occupy_pages = DIV_ROUND_UP(left_size, PG_SIZE) + 1;	     // 1是指vaddr_first_page
+   if (memsz > size_in_first_page) {
+      uint32_t left_size = memsz - size_in_first_page;
+      occupy_pages = DIV_ROUND_UP(left_size, PG_SIZE) + 1;        // 1是指vaddr_first_page
    } else {
       occupy_pages = 1;
    }
@@ -77,15 +77,16 @@ static bool segment_load(int32_t fd, uint32_t offset, uint32_t filesz, uint32_t 
        * pde的判断要在pte之前,否则pde若不存在会导致
        * 判断pte时缺页异常 */
       if (!(*pde & 0x00000001) || !(*pte & 0x00000001)) {
-	 if (get_a_page(PF_USER, vaddr_page) == NULL) {
-	    return false;
-	 }
+         if (get_a_page(PF_USER, vaddr_page) == NULL) {
+            return false;
+         }
       } // 如果原进程的页表已经分配了,利用现有的物理页,直接覆盖进程体
       vaddr_page += PG_SIZE;
       page_idx++;
    }
    sys_lseek(fd, offset, SEEK_SET);
    sys_read(fd, (void*)vaddr, filesz);
+   memset((void*)vaddr + filesz, 0, memsz - filesz);
    return true;
 }
 
@@ -127,18 +128,18 @@ static int32_t load(const char* pathname) {
       /* 将文件的指针定位到程序头 */
       sys_lseek(fd, prog_header_offset, SEEK_SET);
 
-     /* 只获取程序头 */
+      /* 只获取程序头 */
       if (sys_read(fd, &prog_header, prog_header_size) != prog_header_size) {
-	 ret = -1;
-	 goto done;
+         ret = -1;
+         goto done;
       }
 
       /* 如果是可加载段就调用segment_load加载到内存 */
       if (PT_LOAD == prog_header.p_type) {
-	 if (!segment_load(fd, prog_header.p_offset, prog_header.p_filesz, prog_header.p_vaddr)) {
-	    ret = -1;
-	    goto done;
-	 }
+         if (!segment_load(fd, prog_header.p_offset, prog_header.p_filesz, prog_header.p_vaddr, prog_header.p_memsz)) {
+            ret = -1;
+            goto done;
+         }
       }
 
       /* 更新下一个程序头的偏移 */
@@ -166,7 +167,7 @@ int32_t sys_execv(const char* path, const char* argv[]) {
       argc++;
    }
    int32_t entry_point = load(path);     
-   if (entry_point == -1) {	 // 若加载失败则返回-1
+   if (entry_point == -1) {    // 若加载失败则返回-1
       return -1;
    }
    
