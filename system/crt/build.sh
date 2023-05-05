@@ -8,7 +8,7 @@ cd $self_dir
 # INCLUDES="-I. -I$proj_dir/include -I$proj_dir/include/lib"
 # CFLAGS="-m32 -Wall -c -fno-pic -fno-stack-protector -fno-builtin -W -Wstrict-prototypes -Wmissing-prototypes -Wsystem-headers $INCLUDES"
 
-rm *.o 2>/dev/null
+rm mini-crt.a *.o 2>/dev/null
 
 set -xe
 
