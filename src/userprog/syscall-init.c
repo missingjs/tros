@@ -54,7 +54,7 @@ void syscall_init(void) {
    syscall_table[SYS_REWINDDIR]	    = sys_rewinddir;
    syscall_table[SYS_STAT]	    = sys_stat;
    syscall_table[SYS_PS]	    = sys_ps;
-   syscall_table[SYS_EXECV]	    = sys_execv;
+   syscall_table[SYS_EXECVE]	    = sys_execve;
    syscall_table[SYS_EXIT]	    = sys_exit;
    syscall_table[SYS_WAIT]	    = sys_wait;
    syscall_table[SYS_PIPE]	    = sys_pipe;

@@ -153,7 +153,7 @@ done:
 }
 
 /* 用path指向的程序替换当前进程 */
-int32_t sys_execv(const char* path, const char* argv[]) {
+int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    struct task_struct* cur = running_thread();
 
    // clear pending signals, reset all signal handlers

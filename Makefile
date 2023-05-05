@@ -79,7 +79,7 @@ deploy:
 	dd if=$(KERNEL_BIN) of=$(PRIMARY_HD) bs=512 count=255 seek=9 conv=notrunc
 
 clean:
-	rm -f $(C_OBJS) $(AS_OBJS) $(C_DEPS) $(AS_DEPS) $(KERNEL_BIN) $(MBR_BIN) $(LOADER_BIN)
+	rm -f $(C_OBJS) $(AS_OBJS) $(C_DEPS) $(AS_DEPS) $(KERNEL_BIN) $(MBR_BIN) $(LOADER_BIN) $(KERNEL_LIBC)
 
 create-hd:
 	@. ./env.sh || exit; bximage -hd -mode="flat" -size=60 -q $(PRIMARY_HD)

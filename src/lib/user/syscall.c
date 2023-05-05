@@ -159,8 +159,13 @@ void ps(void) {
 }
 
 /* 执行pathname */
-int32_t execv(const char* pathname, char** argv) {
-   return _syscall2(SYS_EXECV, pathname, argv);
+int32_t execv(const char* pathname, char *const argv[]) {
+   char *envp[] = {NULL};
+   return execvp(pathname, argv, envp);
+}
+
+int32_t execvp(const char* pathname, char *const argv[], char *const envp[]) {
+   return _syscall3(SYS_EXECVE, pathname, argv, envp);
 }
 
 /* 以状态status退出 */
