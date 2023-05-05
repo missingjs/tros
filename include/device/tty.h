@@ -1,6 +1,7 @@
 #ifndef __DEVICE_TTY_H
 #define __DEVICE_TTY_H
 #include "stdint.h"
+#include "thread/thread.h"
 
 struct file;
 struct tty_struct;
@@ -24,9 +25,11 @@ struct tty_ldisc {
 struct tty_struct {
     struct tty_ldisc *ldisc;
     void *disc_data;
+    pid_t fg_pid;
 };
 
 void tty_init(void);
 void tty_data_arrived(const unsigned char *buf, uint32_t count);
+void sys_set_fg_pid(pid_t pid);
 
 #endif

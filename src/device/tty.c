@@ -3,10 +3,13 @@
 #include "device/tty.h"
 #include "fs/file.h"
 #include "kernel/memory.h"
+#include "kernel/signal.h"
 #include "thread/sync.h"
+#include "thread/thread.h"
 
 #define N_TTY_LINE_BUF_SIZE 1024
 
+#define CTRL_C ('C' ^ 0x40)
 #define CTRL_D ('D' ^ 0x40)
 #define CTRL_U ('U' ^ 0x40)
 
@@ -14,6 +17,7 @@ struct n_tty_data {
     struct ioqueue buffer;
     unsigned char line_buf[N_TTY_LINE_BUF_SIZE];
     int line_size;
+    uint32_t ctrl;
 };
 
 static void echo(uint8_t ch);
@@ -40,8 +44,14 @@ static void n_tty_close(struct tty_struct *tty) {
 static int32_t n_tty_read(struct tty_struct *tty, struct file *file UNUSED, unsigned char *buf, uint32_t nr) {
     struct n_tty_data *tdata = (struct n_tty_data *)tty->disc_data;
     int r = ioq_read_some(&tdata->buffer, (char *)buf, nr);
-    if (r > 0 && buf[r-1] == CTRL_D) {
-        --r;
+    switch (tdata->ctrl) {
+        case CTRL_C:
+            __attribute__ ((fallthrough));
+        case CTRL_D:
+            --r;
+            break;
+        default:
+            break;
     }
     return r;
 }
@@ -71,10 +81,15 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
             case CTRL_U:
                 clear_line_input(tdata);
                 continue;
-            case '\r':
-                ch = '\n';
+            case CTRL_C:
+                sys_kill(tty->fg_pid, SIGINT);
                 __attribute__ ((fallthrough));
             case CTRL_D:
+                tdata->line_buf[tdata->line_size] = 0xff;
+                ++tdata->line_size;
+                break;
+            case '\r':
+                ch = '\n';
                 __attribute__ ((fallthrough));
             default:
                 tdata->line_buf[tdata->line_size] = ch;
@@ -82,11 +97,9 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
                 break;
         }
 
-        // ECHO to output
-        // console_put_char((uint8_t) ch);
         echo((uint8_t)ch);
 
-        if (tdata->line_size == N_TTY_LINE_BUF_SIZE || ch == '\n' || ch == CTRL_D) {
+        if (tdata->line_size == N_TTY_LINE_BUF_SIZE || ch == '\n' || ch == CTRL_D || ch == CTRL_C) {
             // copy line content to buffer
             int s = ioq_write_some(&tdata->buffer, (const char *)tdata->line_buf, tdata->line_size);
             int len = tdata->line_size - s;
@@ -95,14 +108,28 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
                 *dst++ = *src++;
             }
             tdata->line_size = len;
+
+            switch (ch) {
+                case CTRL_C:
+                    __attribute__ ((fallthrough));
+                case CTRL_D:
+                    tdata->ctrl = ch;
+                    break;
+                default:
+                    tdata->ctrl = 0;
+                    break;
+            }
         }
     }
 }
 
 static void echo(uint8_t ch) {
     switch (ch) {
+        case CTRL_C:
+            console_put_str("^C\n");
+            break;
         case CTRL_D:
-            // console_put_str("^D");
+            console_put_str("^D\n");
             break;
         default:
             console_put_char(ch);
@@ -137,6 +164,10 @@ static int32_t tty_write(struct file *filp, const char *buf, uint32_t count) {
 }
 
 static struct tty_struct *current_tty;
+
+void sys_set_fg_pid(pid_t pid) {
+    current_tty->fg_pid = pid;
+}
 
 static struct file_operations tty_input_ops = {
    .llseek  = no_llseek_fn,

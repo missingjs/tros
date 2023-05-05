@@ -38,7 +38,8 @@ enum SYSCALL_NR {
    SYS_YIELD,
    SYS_SIGNAL,
    SYS_KILL,
-   SYS_SIGRETURN
+   SYS_SIGRETURN,
+   SYS_SET_FG_PID
 };
 uint32_t getpid(void);
 uint32_t write(int32_t fd, const void* buf, uint32_t count);
@@ -73,4 +74,5 @@ void yield(void);
 sighandler_t signal(int32_t signum, sighandler_t handler);
 int32_t kill(pid_t pid, int32_t signum);
 void sigreturn(void);
+void set_fg_pid(pid_t pid);
 #endif

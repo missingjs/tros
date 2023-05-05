@@ -1,5 +1,6 @@
 #include "device/console.h"
 #include "device/timer.h"
+#include "device/tty.h"
 #include "fs/fs.h"
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
@@ -64,5 +65,6 @@ void syscall_init(void) {
    syscall_table[SYS_SIGNAL]   = sys_signal;
    syscall_table[SYS_KILL]     = sys_kill;
    syscall_table[SYS_SIGRETURN] = sys_sigreturn;
+   syscall_table[SYS_SET_FG_PID] = sys_set_fg_pid;
    put_str("syscall_init done\n");
 }

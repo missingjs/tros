@@ -38,56 +38,6 @@ static void readline2(char *buf, uint32_t count) {
    }
 }
 
-// /* 从键盘缓冲区中最多读入count个字节到buf。*/
-// static void readline(char* buf, int32_t count) {
-//    assert(buf != NULL && count > 0);
-//    char* pos = buf;
-
-//    while (read(stdin_no, pos, 1) != -1 && (pos - buf) < count) { // 在不出错情况下,直到找到回车符才返回
-//       switch (*pos) {
-//        /* 找到回车或换行符后认为键入的命令结束,直接返回 */
-//      case '\n':
-//      case '\r':
-//         *pos = 0;       // 添加cmd_line的终止字符0
-//         putchar('\n');
-//         return;
-
-//      case '\b':
-//         if (cmd_line[0] != '\b') {        // 阻止删除非本次输入的信息
-//            --pos;       // 退回到缓冲区cmd_line中上一个字符
-//            putchar('\b');
-//         }
-//         break;
-
-//      /* ctrl+l 清屏 */
-//      case 'l' - 'a':
-//         /* 1 先将当前的字符'l'-'a'置为0 */
-//         *pos = 0;
-//         /* 2 再将屏幕清空 */
-//         clear();
-//         /* 3 打印提示符 */
-//         print_prompt();
-//         /* 4 将之前键入的内容再次打印 */
-//         printf("%s", buf);
-//         break;
-
-//      /* ctrl+u 清掉输入 */
-//      case 'u' - 'a':
-//         while (buf != pos) {
-//            putchar('\b');
-//            *(pos--) = 0;
-//         }
-//         break;
-
-//      /* 非控制键则输出字符 */
-//      default:
-//         putchar(*pos);
-//         pos++;
-//       }
-//    }
-//    printf("readline: can`t find enter_key in the cmd_line, max num of char is 128\n");
-// }
-
 /* 分析字符串cmd_str中以token为分隔符的单词,将各单词的指针存入argv数组 */
 static int32_t cmd_parse(char* cmd_str, char** argv, char token) {
    assert(cmd_str != NULL);
@@ -177,12 +127,14 @@ static void cmd_execute(uint32_t argc, char **argv)
       int32_t pid = fork();
       if (pid)
       { // 父进程
+         set_fg_pid(pid);
          int32_t status;
          int32_t child_pid = wait(&status); // 此时子进程若没有执行exit,my_shell会被阻塞,不再响应键入的命令
          if (child_pid == -1)
          { // 按理说程序正确的话不会执行到这句,fork出的进程便是shell子进程
             panic("my_shell: no child\n");
          }
+         set_fg_pid(getpid());
          // printf("child_pid %d, it's status: %d\n", child_pid, status);
       }
       else
@@ -208,11 +160,10 @@ static void cmd_execute(uint32_t argc, char **argv)
 
 /* 简单的shell */
 void my_shell(void) {
+   set_fg_pid(getpid());
+
    char* argv[MAX_ARG_NR] = {NULL};
    int32_t argc = -1;
-
-// char my_commands[] = {"echo abc | cat"};
-// execute_piped_commands(my_commands);
 
    cwd_cache[0] = '/';
    while (1) {
@@ -228,7 +179,6 @@ void my_shell(void) {
       /* 针对管道的处理 */
       char *pipe_symbol = strchr(cmd_line, '|');
       if (pipe_symbol) {
-         // process_piped_commands_old(cmd_line);
          execute_piped_commands(cmd_line);
       } else { // 一般无管道操作的命令
          argc = -1;
@@ -275,6 +225,8 @@ static void execute_piped_commands(char *command_line) {
       } else if (cmd_index > 0) {
          close(prev[0]);
          close(prev[1]);
+      } else {
+         set_fg_pid(pid);
       }
       tmp = prev;
       prev = next;
@@ -301,57 +253,6 @@ static void execute_piped_commands(char *command_line) {
    int32_t st;
    while ((pid = wait(&st)) != -1)
       ;;
+
+   set_fg_pid(getpid());
 }
-
-// static void process_piped_commands_old(char *command_line)
-// {
-//    /* 支持多重管道操作,如cmd1|cmd2|..|cmdn,
-//     * cmd1的标准输出和cmdn的标准输入需要单独处理 */
-
-//    /*1 生成管道*/
-//    int32_t fd[2] = {-1}; // fd[0]用于输入,fd[1]用于输出
-//    pipe(fd);
-//    /* 将标准输出重定向到fd[1],使后面的输出信息重定向到内核环形缓冲区 */
-//    fd_redirect(1, fd[1]);
-
-//    /*2 第一个命令 */
-//    char *each_cmd = command_line;
-//    char *pipe_symbol = strchr(each_cmd, '|');
-//    *pipe_symbol = 0;
-
-//    /* 执行第一个命令,命令的输出会写入环形缓冲区 */
-//    argc = -1;
-//    argc = cmd_parse(each_cmd, argv, ' ');
-//    cmd_execute(argc, argv);
-
-//    /* 跨过'|',处理下一个命令 */
-//    each_cmd = pipe_symbol + 1;
-
-//    /* 将标准输入重定向到fd[0],使之指向内核环形缓冲区*/
-//    fd_redirect(0, fd[0]);
-//    /*3 中间的命令,命令的输入和输出都是指向环形缓冲区 */
-//    while ((pipe_symbol = strchr(each_cmd, '|')))
-//    {
-//       *pipe_symbol = 0;
-//       argc = -1;
-//       argc = cmd_parse(each_cmd, argv, ' ');
-//       cmd_execute(argc, argv);
-//       each_cmd = pipe_symbol + 1;
-//    }
-
-//    /*4 处理管道中最后一个命令 */
-//    /* 将标准输出恢复屏幕 */
-//    fd_redirect(1, 1);
-
-//    /* 执行最后一个命令 */
-//    argc = -1;
-//    argc = cmd_parse(each_cmd, argv, ' ');
-//    cmd_execute(argc, argv);
-
-//    /*5  将标准输入恢复为键盘 */
-//    fd_redirect(0, 0);
-
-//    /*6 关闭管道 */
-//    close(fd[0]);
-//    close(fd[1]);
-// }
