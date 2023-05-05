@@ -64,7 +64,7 @@ int32_t stat(const char* path, struct stat* buf);
 int32_t chdir(const char* path);
 void ps(void);
 int32_t execv(const char* pathname, char *const argv[]);
-int32_t execvp(const char* pathname, char *const argv[], char *const envp[]);
+int32_t execve(const char* pathname, char *const argv[], char *const envp[]);
 void exit(int32_t status);
 pid_t wait(int32_t* status);
 int32_t pipe(int32_t pipefd[2]);

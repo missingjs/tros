@@ -16,7 +16,7 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 /* 用来记录当前目录,是当前目录的缓存,每次执行cd命令时会更新此内容 */
 char cwd_cache[MAX_PATH_LEN] = {0};
 
-static char *environ = {"PATH=/usr/bin:/bin"};
+static char *__environ[] = {"PATH=/usr/bin:/bin"};
 
 // static void process_piped_commands_old(char *command_line);
 static void execute_piped_commands(char *command_line);
@@ -154,7 +154,7 @@ static void cmd_execute(uint32_t argc, char **argv)
          }
          else
          {
-            execv(argv[0], argv);
+            execve(argv[0], argv, __environ);
          }
       }
    }
@@ -222,7 +222,7 @@ static void execute_piped_commands(char *command_line) {
          fd_redirect(1, next[1]);
          close(next[0]);
          close(next[1]);
-         execv(argv[0], argv);
+         execve(argv[0], argv, __environ);
          panic("should not be here");
       } else if (cmd_index > 0) {
          close(prev[0]);
@@ -245,7 +245,7 @@ static void execute_piped_commands(char *command_line) {
       fd_redirect(0, prev[0]);
       close(prev[0]);
       close(prev[1]);
-      execv(argv[0], argv);
+      execve(argv[0], argv, __environ);
       panic("should not be here");
    } else {
       close(prev[0]);

@@ -174,32 +174,65 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    /* 修改进程名 */
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
-   // setup argv
+
    void *ptr = (void*) 0xc0000000;
+
+   // setup environ strings
+   int num_envs = 0;
+   while (envp[num_envs]) {
+      ++num_envs;
+   }
+   char **user_envp = kmalloc(sizeof(char*) * (num_envs+1));
+   user_envp[num_envs] = NULL;
+   for (int i = num_envs - 1; i >= 0; --i) {
+      uint32_t len = strlen(envp[i]);
+      char *s = (char *)(ptr - len - 1);
+      strcpy(s, envp[i]);
+      user_envp[i] = s;
+      ptr = (void*)s;
+   }
+
+   // setup argument strings
    const char *user_argv[MAX_ARG_NR] = {NULL};
    ASSERT(argc > 0);
    for (int i = ((int)argc) - 1; i >= 0; --i) {
        uint32_t len = strlen(argv[i]);
-       char *s = ptr - len - 1;
+       char *s = (char *)(ptr - len - 1);
        strcpy(s, argv[i]);
        user_argv[i] = (const char *)s;
        ptr = s;
    }
 
+   // align with 4 bytes
+   ptr -= (((uint32_t)ptr) % 4);
+
+   // setup envp
+   uint32_t esize = (num_envs + 1) * sizeof(char *);
+   ptr -= esize;
+   void *envp_start = ptr;
+   memcpy(ptr, user_envp, esize);
+
+   // setup argv
    uint32_t vsize = argc * sizeof(const char *);
-   void* argv_start = ptr - vsize;
-   memcpy(argv_start, user_argv, vsize);
+   ptr -= vsize;
+   void *argv_start = ptr;
+   memcpy(ptr, user_argv, vsize);
+
+   // setup argc
+   ptr -= sizeof(uint32_t);
+   *(uint32_t*)ptr = argc;
+
+   kfree(user_envp);
 
    struct intr_stack* intr_0_stack = (struct intr_stack*)((uint32_t)cur + PG_SIZE - sizeof(struct intr_stack));
    /* 参数传递给用户进程 */
-   // intr_0_stack->ebx = (int32_t)argv;
+   intr_0_stack->edx = (uint32_t)envp_start;
    intr_0_stack->ebx = (uint32_t)argv_start;
    intr_0_stack->ecx = argc;
    intr_0_stack->eip = (void*)entry_point;
    // user stack below the array argv[]
-   intr_0_stack->esp = argv_start;
+   intr_0_stack->esp = ptr;
    /* 使新用户进程的栈地址为最高用户空间地址 */
-   // intr_0_stack->esp = (void*)0xc0000000;
 
    /* exec不同于fork,为使新进程更快被执行,直接从中断返回 */
    asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (intr_0_stack) : "memory");
