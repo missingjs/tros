@@ -16,7 +16,7 @@
 
 #define mil_seconds_per_intr (1000 / IRQ0_FREQUENCY)
 
-uint32_t ticks;          // ticks是内核自中断开启以来总共的嘀嗒数
+static uint32_t ticks;          // ticks是内核自中断开启以来总共的嘀嗒数
 
 /* 把操作的计数器counter_no、读写锁属性rwl、计数器模式counter_mode写入模式控制寄存器并赋予初始值counter_value */
 static void frequency_set(uint8_t counter_port, \
@@ -50,6 +50,7 @@ static void intr_timer_handler(void) {
 
 // 以tick为单位的sleep,任何时间形式的sleep会转换此ticks形式
 static void ticks_to_sleep(uint32_t sleep_ticks) {
+   intr_enable();
    uint32_t start_tick = ticks;
    while (ticks - start_tick < sleep_ticks) {	   // 若间隔的ticks数不够便让出cpu
       thread_yield();
