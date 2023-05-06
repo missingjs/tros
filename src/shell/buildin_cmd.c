@@ -71,26 +71,71 @@ static bool file_exists(const char *abs_path) {
    return stat(abs_path, &file_stat) != -1;
 }
 
+static bool is_root_path(const char *path) {
+   return path[0] == '/' && path[1] == 0;
+}
+
 extern char *__getenv(const char *name);
 
-char *get_target_abs_path(const char *target, char *final_path) {
+char *build_absolute_path(const char *target, char *final_path) {
    assert(target != NULL);
    assert(final_path != NULL);
 
    char abs_path[MAX_PATH_LEN] = {0};
 
    if (target[0] == '/') {
+      // strcat(abs_path, target);
+      strcpy(abs_path, target);
+      wash_path(abs_path, final_path);
+      return file_exists(final_path) ? final_path : NULL;
+   }
+
+   if (strchr(target, '/')) {
+      if (getcwd(abs_path, MAX_PATH_LEN) == NULL) {
+         return NULL;
+      }
+      if (!is_root_path(abs_path)) {
+         strcat(abs_path, "/");
+      }
       strcat(abs_path, target);
       wash_path(abs_path, final_path);
       return file_exists(final_path) ? final_path : NULL;
    }
 
-   
-
    const char *path_env = __getenv("PATH");
-   assert(path_env != NULL);
+   if (!path_env) {
+      path_env = "/usr/bin:/bin";
+   }
 
+   const char *p = path_env, *t;
+   size_t ncp;
+   while(1) {
+      t = strchr(p, ':');
+      if (t) {
+         ncp = t - p;
+      } else {
+         ncp = strlen(p);
+      }
+      strncpy(abs_path, p, ncp);
 
+      if (abs_path[ncp-1] != '/') {
+         abs_path[ncp] = '/';
+         abs_path[ncp+1] = 0;
+      } else {
+         abs_path[ncp] = 0;
+      }
+      strcat(abs_path, target);
+      wash_path(abs_path, final_path);
+      if (file_exists(final_path)) {
+         return final_path;
+      }
+
+      if (t) {
+         p = t + 1;
+      } else {
+         break;
+      }
+   };
 
    return NULL;
 }

@@ -18,6 +18,7 @@ char cwd_cache[MAX_PATH_LEN] = {0};
 
 static char *const __environ[] = {"PATH=/usr/bin:/bin", NULL};
 
+char *__getenv(const char *name);
 char *__getenv(const char *name) {
    char *const *p = __environ;
    char *s;
@@ -30,7 +31,7 @@ char *__getenv(const char *name) {
          continue;
       }
       if (strncmp(s, name, (uint32_t)(r - s)) == 0) {
-         return s;
+         return r + 1;
       }
    }
    return NULL;
@@ -155,17 +156,23 @@ static void cmd_execute(uint32_t argc, char **argv)
          }
          set_fg_pid(getpid());
       } else {
-         make_clear_abs_path(argv[0], final_path);
-         argv[0] = final_path;
+         // make_clear_abs_path(argv[0], final_path);
+         // argv[0] = final_path;
 
-         struct stat file_stat;
-         memset(&file_stat, 0, sizeof(struct stat));
-         if (stat(argv[0], &file_stat) == -1) {
+         // struct stat file_stat;
+         // memset(&file_stat, 0, sizeof(struct stat));
+         // if (stat(argv[0], &file_stat) == -1) {
+         //    printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
+         //    exit(-1);
+         // } else {
+         //    execve(argv[0], argv, __environ);
+         // }
+         char _final_path[MAX_PATH_LEN];
+         if (!build_absolute_path(argv[0], _final_path)) {
             printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
             exit(-1);
-         } else {
-            execve(argv[0], argv, __environ);
          }
+         execve(_final_path, argv, __environ);
       }
    }
 }

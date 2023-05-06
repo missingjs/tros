@@ -41,6 +41,16 @@ char* strcpy(char* dst_, const char* src_) {
    return r;
 }
 
+char *strncpy(char *dest, const char *src, size_t count) {
+   const char *end = src + count;
+   char *r = dest;
+   while (src != end && (*dest++ = *src++));
+   while (src++ != end) {
+      *dest++ = 0;
+   }
+   return r;
+}
+
 /* 返回字符串长度 */
 uint32_t strlen(const char* str) {
    assert(str != NULL);

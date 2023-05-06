@@ -828,8 +828,8 @@ int32_t sys_stat(const char* path, struct stat* buf) {
       buf->st_filetype = searched_record.file_type;
       buf->st_ino = inode_no;
       ret = 0;
-   } else {
-      printk("sys_stat: %s not found\n", path);
+   // } else {
+   //    printk("sys_stat: %s not found\n", path);
    }
    dir_close(searched_record.parent_dir);
    return ret;
