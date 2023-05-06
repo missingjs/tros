@@ -89,7 +89,7 @@ int main(void) {
    sys_free(idx_content);
    sys_free(buf);
 
-   cls_screen();
+   // cls_screen();
    init_done = true;
 
    while (1) {

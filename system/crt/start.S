@@ -2,9 +2,10 @@
 extern	 main
 extern	 exit
 
-section .data
-environ dd 0
-global environ
+;section .data
+;environ dd 0
+;global environ
+extern environ
 
 section .text
 global _start

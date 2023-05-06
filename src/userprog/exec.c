@@ -166,11 +166,12 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    while (argv[argc]) {
       argc++;
    }
+
    int32_t entry_point = load(path);     
    if (entry_point == -1) {    // 若加载失败则返回-1
       return -1;
    }
-   
+
    /* 修改进程名 */
    memcpy(cur->name, path, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
