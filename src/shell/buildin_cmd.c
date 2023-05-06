@@ -65,6 +65,36 @@ void make_clear_abs_path(char* path, char* final_path) {
    wash_path(abs_path, final_path);
 }
 
+static bool file_exists(const char *abs_path) {
+   struct stat file_stat;
+   memset(&file_stat, 0, sizeof(struct stat));
+   return stat(abs_path, &file_stat) != -1;
+}
+
+extern char *__getenv(const char *name);
+
+char *get_target_abs_path(const char *target, char *final_path) {
+   assert(target != NULL);
+   assert(final_path != NULL);
+
+   char abs_path[MAX_PATH_LEN] = {0};
+
+   if (target[0] == '/') {
+      strcat(abs_path, target);
+      wash_path(abs_path, final_path);
+      return file_exists(final_path) ? final_path : NULL;
+   }
+
+   
+
+   const char *path_env = __getenv("PATH");
+   assert(path_env != NULL);
+
+
+
+   return NULL;
+}
+
 /* pwd命令的内建函数 */
 void buildin_pwd(uint32_t argc, char** argv UNUSED) {
    if (argc != 1) {

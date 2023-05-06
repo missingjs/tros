@@ -16,7 +16,25 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 /* 用来记录当前目录,是当前目录的缓存,每次执行cd命令时会更新此内容 */
 char cwd_cache[MAX_PATH_LEN] = {0};
 
-static char *__environ[] = {"PATH=/usr/bin:/bin", NULL};
+static char *const __environ[] = {"PATH=/usr/bin:/bin", NULL};
+
+char *__getenv(const char *name) {
+   char *const *p = __environ;
+   char *s;
+   while ((s = *p++)) {
+      char *r = s;
+      while (*r && *r != '=') {
+         ++r;
+      }
+      if (!*r) {  // has no '=', invalid format
+         continue;
+      }
+      if (strncmp(s, name, (uint32_t)(r - s)) == 0) {
+         return s;
+      }
+   }
+   return NULL;
+}
 
 // static void process_piped_commands_old(char *command_line);
 static void execute_piped_commands(char *command_line);

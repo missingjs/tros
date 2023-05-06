@@ -50,7 +50,7 @@ uint32_t strlen(const char* str) {
 }
 
 /* 比较两个字符串,若a_中的字符大于b_中的字符返回1,相等时返回0,否则返回-1. */
-int8_t strcmp (const char* a, const char* b) {
+int strcmp (const char* a, const char* b) {
    assert(a != NULL && b != NULL);
    while (*a != 0 && *a == *b) {
       a++;
@@ -59,6 +59,19 @@ int8_t strcmp (const char* a, const char* b) {
 /* 如果*a小于*b就返回-1,否则就属于*a大于等于*b的情况。在后面的布尔表达式"*a > *b"中,
  * 若*a大于*b,表达式就等于1,否则就表达式不成立,也就是布尔值为0,恰恰表示*a等于*b */
    return *a < *b ? -1 : *a > *b;
+}
+
+int strncmp(const char *lhs, const char *rhs, uint32_t count) {
+   uint32_t i = 0;
+   while (*lhs && *lhs == *rhs && i < count) {
+      ++lhs;
+      ++rhs;
+      ++i;
+   }
+   if (i == count) {
+      return 0;
+   }
+   return *lhs < *rhs ? -1 : *lhs > *rhs;
 }
 
 /* 从左到右查找字符串str中首次出现字符ch的地址(不是下标,是地址) */
