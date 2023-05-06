@@ -208,14 +208,17 @@ static void execute_piped_commands(char *command_line) {
    int cmd_index = 0;
    char *each_cmd = command_line;
    char *pipe_symbol;
-   char cleared_path[256];
+   char cleared_path[MAX_PATH_LEN];
    char* argv[MAX_ARG_NR] = {NULL};
 
    while ((pipe_symbol = strchr(each_cmd, '|'))) {
       *pipe_symbol = 0;
+
       cmd_parse(each_cmd, argv, ' ');
-      make_clear_abs_path(argv[0], cleared_path);
-      argv[0] = cleared_path;
+      if (!build_absolute_path(argv[0], cleared_path)) {
+         printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
+         exit(-1);
+      }
 
       pipe(next);
       if ((pid = fork()) == 0) {
@@ -227,7 +230,7 @@ static void execute_piped_commands(char *command_line) {
          fd_redirect(1, next[1]);
          close(next[0]);
          close(next[1]);
-         execve(argv[0], argv, __environ);
+         execve(cleared_path, argv, __environ);
          panic("should not be here");
       } else if (cmd_index > 0) {
          close(prev[0]);
@@ -244,13 +247,16 @@ static void execute_piped_commands(char *command_line) {
 
    assert(cmd_index > 0);
    cmd_parse(each_cmd, argv, ' ');
-   make_clear_abs_path(argv[0], cleared_path);
-   argv[0] = cleared_path;
+   if (!build_absolute_path(argv[0], cleared_path)) {
+      printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
+      exit(-1);
+   }
+
    if ((pid = fork()) == 0) {
       fd_redirect(0, prev[0]);
       close(prev[0]);
       close(prev[1]);
-      execve(argv[0], argv, __environ);
+      execve(cleared_path, argv, __environ);
       panic("should not be here");
    } else {
       close(prev[0]);
