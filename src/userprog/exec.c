@@ -152,6 +152,29 @@ done:
    return ret;
 }
 
+static char *copy_string(const char *s) {
+   uint32_t size = strlen(s);
+   char *new_s = (char *)kmalloc(size + 1);
+   strcpy(new_s, s);
+   return new_s;
+}
+
+static char **copy_array_of_strings(char *const strs[], uint32_t count) {
+   char **cp = (char **)kmalloc((count + 1) * sizeof(char *));
+   for (uint32_t i = 0; i < count; ++i) {
+      cp[i] = copy_string(strs[i]);
+   }
+   cp[count] = NULL;
+   return cp;
+}
+
+static void free_array_of_strings(char **strs, uint32_t count) {
+   for (uint32_t i = 0; i < count; ++i) {
+      kfree(strs[i]);
+   }
+   kfree(strs);
+}
+
 /* 用path指向的程序替换当前进程 */
 int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    struct task_struct* cur = running_thread();
@@ -166,6 +189,13 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    while (argv[argc]) {
       argc++;
    }
+   char **argv_copy = copy_array_of_strings(argv, argc);
+
+   int num_envs = 0;
+   while (envp[num_envs]) {
+      ++num_envs;
+   }
+   char **envp_copy = copy_array_of_strings(envp, (uint32_t)num_envs);
 
    int32_t entry_point = load(path);     
    if (entry_point == -1) {    // 若加载失败则返回-1
@@ -179,16 +209,12 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    void *ptr = (void*) 0xc0000000;
 
    // setup environ strings
-   int num_envs = 0;
-   while (envp[num_envs]) {
-      ++num_envs;
-   }
    char **user_envp = kmalloc(sizeof(char*) * (num_envs+1));
    user_envp[num_envs] = NULL;
    for (int i = num_envs - 1; i >= 0; --i) {
-      uint32_t len = strlen(envp[i]);
+      uint32_t len = strlen(envp_copy[i]);
       char *s = (char *)(ptr - len - 1);
-      strcpy(s, envp[i]);
+      strcpy(s, envp_copy[i]);
       user_envp[i] = s;
       ptr = (void*)s;
    }
@@ -197,9 +223,9 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    const char *user_argv[MAX_ARG_NR] = {NULL};
    ASSERT(argc > 0);
    for (int i = ((int)argc) - 1; i >= 0; --i) {
-       uint32_t len = strlen(argv[i]);
+       uint32_t len = strlen(argv_copy[i]);
        char *s = (char *)(ptr - len - 1);
-       strcpy(s, argv[i]);
+       strcpy(s, argv_copy[i]);
        user_argv[i] = (const char *)s;
        ptr = s;
    }
@@ -224,6 +250,8 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    *(uint32_t*)ptr = argc;
 
    kfree(user_envp);
+   free_array_of_strings(argv_copy, argc);
+   free_array_of_strings(envp_copy, (uint32_t)num_envs);
 
    struct intr_stack* intr_0_stack = (struct intr_stack*)((uint32_t)cur + PG_SIZE - sizeof(struct intr_stack));
    /* 参数传递给用户进程 */
