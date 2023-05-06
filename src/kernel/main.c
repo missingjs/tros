@@ -23,6 +23,7 @@ void init(void);
 void fork_test(void);
 static const char *parse_index_line(const char *ptr, const char *end, char *f_path, int *f_offset, int *f_size);
 static bool init_done = false;
+static void make_parent_dirs(const char *path);
 
 int main(void) {
    put_str("I am kernel\n");
@@ -76,6 +77,7 @@ int main(void) {
       ASSERT(f_size >= 0);
       printk("%s %d %d\n", f_path, f_offset, f_size);
       sys_unlink(f_path);  // It doesn't matter if f_path not exist
+      make_parent_dirs(f_path);
       int32_t fd = sys_open(f_path, O_CREAT | O_RDWR);
       if (fd < 0) {
          panic("failed to create/open system file");
@@ -207,4 +209,21 @@ static const char *parse_index_line(const char *ptr, const char *end, char *f_pa
    }
    *f_size = size;
    return ptr + 1;
+}
+
+static void make_parent_dirs(const char *path) {
+   char pathname[512];
+   const char *t = path + 1;  // skip leading '/'
+   struct stat file_stat;
+
+   while ((t = strchr(t, '/'))) {
+      size_t len = (size_t)(t - path);
+      strncpy(pathname, path, len);
+      pathname[len] = 0;
+      memset(&file_stat, 0, sizeof(struct stat));
+      if (stat(pathname, &file_stat) == -1) {
+         sys_mkdir(pathname);
+      }
+      ++t;  // skip current '/'
+   }
 }

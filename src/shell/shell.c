@@ -156,17 +156,6 @@ static void cmd_execute(uint32_t argc, char **argv)
          }
          set_fg_pid(getpid());
       } else {
-         // make_clear_abs_path(argv[0], final_path);
-         // argv[0] = final_path;
-
-         // struct stat file_stat;
-         // memset(&file_stat, 0, sizeof(struct stat));
-         // if (stat(argv[0], &file_stat) == -1) {
-         //    printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
-         //    exit(-1);
-         // } else {
-         //    execve(argv[0], argv, __environ);
-         // }
          char _final_path[MAX_PATH_LEN];
          if (!build_absolute_path(argv[0], _final_path)) {
             printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
