@@ -5,4 +5,8 @@
 
 typedef unsigned int size_t;
 
+#define bool int
+#define true 1
+#define false 0
+
 #endif

@@ -2,6 +2,7 @@
 #define TROS_CRT_STDLIB_H
 
 #include "stddef.h"
+#include "stdint.h"
 
 extern char **environ;
 
