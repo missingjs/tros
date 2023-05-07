@@ -12,7 +12,6 @@
 #include "kernel/list.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
-#include "shell/pipe.h"
 #include "stdint.h"
 #include "string.h"
 

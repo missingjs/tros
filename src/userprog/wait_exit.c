@@ -6,7 +6,6 @@
 #include "kernel/list.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
-#include "shell/pipe.h"
 #include "thread/thread.h"
 #include "userprog/wait_exit.h"
 

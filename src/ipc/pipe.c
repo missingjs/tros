@@ -1,11 +1,11 @@
 #include "device/ioqueue.h"
 #include "fs/file.h"
 #include "fs/fs.h"
+#include "ipc/pipe.h"
 #include "kernel/debug.h"
 #include "kernel/global.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
-#include "shell/pipe.h"
 #include "thread/sync.h"
 #include "thread/thread.h"
 

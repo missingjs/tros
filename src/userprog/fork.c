@@ -3,7 +3,6 @@
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
 #include "kernel/signal.h"
-#include "shell/pipe.h"
 #include "string.h"
 #include "thread/thread.h"    
 #include "userprog/fork.h"
