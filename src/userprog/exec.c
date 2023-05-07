@@ -205,6 +205,9 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
       return -1;
    }
 
+   // release memory allocated in user space
+   block_desc_init(cur->u_block_desc);
+
    /* 修改进程名 */
    memcpy(cur->name, path_copy, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
