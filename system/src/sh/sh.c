@@ -87,7 +87,8 @@ static void cmd_execute(uint32_t argc, char **argv)
 {
    if (!strcmp("cd", argv[0]))
    {
-      if (buildin_cd(argc, argv) != NULL)
+      char final_path[MAX_PATH_LEN] = {0};
+      if (buildin_cd(argc, argv, final_path) != NULL)
       {
          memset(cwd_cache, 0, MAX_PATH_LEN);
          strcpy(cwd_cache, final_path);

@@ -27,7 +27,7 @@ void buildin_pwd(uint32_t argc, char** argv UNUSED) {
 }
 
 /* cd命令的内建函数 */
-char* buildin_cd(uint32_t argc, char** argv) {
+char* buildin_cd(uint32_t argc, char** argv, char *final_path) {
    if (argc > 2) {
       printf("cd: only support 1 argument!\n");
       return NULL;
