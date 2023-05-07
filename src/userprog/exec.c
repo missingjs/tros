@@ -3,10 +3,11 @@
 #include "kernel/global.h"
 #include "kernel/memory.h"
 #include "kernel/stdio-kernel.h"
-#include "shell/shell.h"
 #include "string.h"
 #include "thread/thread.h"    
 #include "userprog/exec.h"
+
+#define MAX_ARG_NR 16
 
 extern void intr_exit(void);
 typedef uint32_t Elf32_Word, Elf32_Addr, Elf32_Off;
@@ -185,6 +186,8 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
       cur->sighandlers[i] = SIG_DFL;
    }
 
+   char *path_copy = copy_string(path);
+
    uint32_t argc = 0;
    while (argv[argc]) {
       argc++;
@@ -197,13 +200,13 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    }
    char **envp_copy = copy_array_of_strings(envp, (uint32_t)num_envs);
 
-   int32_t entry_point = load(path);     
+   int32_t entry_point = load(path_copy);     
    if (entry_point == -1) {    // 若加载失败则返回-1
       return -1;
    }
 
    /* 修改进程名 */
-   memcpy(cur->name, path, TASK_NAME_LEN);
+   memcpy(cur->name, path_copy, TASK_NAME_LEN);
    cur->name[TASK_NAME_LEN-1] = 0;
 
    void *ptr = (void*) 0xc0000000;
@@ -252,6 +255,7 @@ int32_t sys_execve(const char* path, char *const argv[], char *const envp[]) {
    kfree(user_envp);
    free_array_of_strings(argv_copy, argc);
    free_array_of_strings(envp_copy, (uint32_t)num_envs);
+   kfree(path_copy);
 
    struct intr_stack* intr_0_stack = (struct intr_stack*)((uint32_t)cur + PG_SIZE - sizeof(struct intr_stack));
    /* 参数传递给用户进程 */

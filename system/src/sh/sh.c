@@ -1,13 +1,14 @@
-#include "fs/file.h"
-#include "kernel/global.h"
-#include "shell/buildin_cmd.h"
-#include "shell/pipe.h"
-#include "shell/shell.h"
+#include "stdlib.h"
 #include "stdint.h"
 #include "stdio.h"
 #include "string.h"
 #include "user/assert.h"
 #include "user/syscall.h"
+
+#include "builtin.h"
+
+#define MAX_ARG_NR 16       // 加上命令名外,最多支持15个参数
+#define STDIN_FILENO 0
 
 /* 存储输入的命令 */
 static char cmd_line[MAX_PATH_LEN] = {0};
@@ -16,47 +17,27 @@ char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 /* 用来记录当前目录,是当前目录的缓存,每次执行cd命令时会更新此内容 */
 char cwd_cache[MAX_PATH_LEN] = {0};
 
-static char *const __environ[] = {"PATH=/usr/bin:/bin", NULL};
+extern char **environ;
 
-char *__getenv(const char *name);
-char *__getenv(const char *name) {
-   char *const *p = __environ;
-   char *s;
-   while ((s = *p++)) {
-      char *r = s;
-      while (*r && *r != '=') {
-         ++r;
-      }
-      if (!*r) {  // has no '=', invalid format
-         continue;
-      }
-      if (strncmp(s, name, (uint32_t)(r - s)) == 0) {
-         return r + 1;
-      }
-   }
-   return NULL;
-}
-
-// static void process_piped_commands_old(char *command_line);
 static void execute_piped_commands(char *command_line);
 
-/* 输出提示符 */
-void print_prompt(void) {
+static void print_prompt(void) {
    printf("[rabbit@localhost %s]$ ", cwd_cache);
 }
 
-static void readline(char *buf, uint32_t count) {
-   assert(buf != NULL && count > 0);
-   int r;
-   if ((r = read(stdin_no, buf, count-1)) >= 0) {
-      if (r > 0 && buf[r-1] == '\n') {
-         --r;
-      }
-      buf[r] = 0;
-   } else {
-      // TODO: handle read error
-      buf[0] = 0;
-   }
+static int readline(char *buf, uint32_t count) {
+    assert(buf != NULL && count > 0);
+    int r;
+    if ((r = read(STDIN_FILENO, buf, count-1)) >= 0) {
+        if (r > 0 && buf[r-1] == '\n') {
+            --r;
+        }
+        buf[r] = 0;
+    } else {
+        // TODO: handle read error
+        buf[0] = 0;
+    }
+    return r;
 }
 
 /* 分析字符串cmd_str中以token为分隔符的单词,将各单词的指针存入argv数组 */
@@ -161,13 +142,13 @@ static void cmd_execute(uint32_t argc, char **argv)
             printf("my_shell: cannot access %s: No such file or directory\n", argv[0]);
             exit(-1);
          }
-         execve(_final_path, argv, __environ);
+         char *const *current_envp = environ;
+         execve(_final_path, argv, current_envp);
       }
    }
 }
 
-/* 简单的shell */
-void my_shell(void) {
+int main(void) {
    set_fg_pid(getpid());
 
    char* argv[MAX_ARG_NR] = {NULL};
@@ -178,7 +159,11 @@ void my_shell(void) {
       print_prompt();
       memset(final_path, 0, MAX_PATH_LEN);
       memset(cmd_line, 0, MAX_PATH_LEN);
-      readline(cmd_line, MAX_PATH_LEN);
+      int r;
+      if ((r = readline(cmd_line, MAX_PATH_LEN)) < 0) {
+         printf("[shell] failed to readline, return value is %d\n", r);
+         break;
+      }
       if (cmd_line[0] == 0) { // 若只键入了一个回车
          continue;
       }
@@ -191,13 +176,14 @@ void my_shell(void) {
          argc = -1;
          argc = cmd_parse(cmd_line, argv, ' ');
          if (argc == -1) {
-            printf("num of arguments exceed %d\n", MAX_ARG_NR);
-            continue;
+         printf("num of arguments exceed %d\n", MAX_ARG_NR);
+         continue;
          }
          cmd_execute(argc, argv);
       }
    }
    panic("my_shell: should not be here");
+   return 0;
 }
 
 static void execute_piped_commands(char *command_line) {
@@ -210,6 +196,7 @@ static void execute_piped_commands(char *command_line) {
    char *pipe_symbol;
    char cleared_path[MAX_PATH_LEN];
    char* argv[MAX_ARG_NR] = {NULL};
+   char *const *current_envp = environ;
 
    while ((pipe_symbol = strchr(each_cmd, '|'))) {
       *pipe_symbol = 0;
@@ -230,7 +217,7 @@ static void execute_piped_commands(char *command_line) {
          fd_redirect(1, next[1]);
          close(next[0]);
          close(next[1]);
-         execve(cleared_path, argv, __environ);
+         execve(cleared_path, argv, current_envp);
          panic("should not be here");
       } else if (cmd_index > 0) {
          close(prev[0]);
@@ -256,7 +243,7 @@ static void execute_piped_commands(char *command_line) {
       fd_redirect(0, prev[0]);
       close(prev[0]);
       close(prev[1]);
-      execve(cleared_path, argv, __environ);
+      execve(cleared_path, argv, current_envp);
       panic("should not be here");
    } else {
       close(prev[0]);

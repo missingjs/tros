@@ -272,7 +272,7 @@ void* sys_malloc(uint32_t size) {
    struct mem_block_desc* descs;
    struct task_struct* cur_thread = running_thread();
 
-/* 判断用哪个内存池*/
+   /* 判断用哪个内存池*/
    if (cur_thread->pgdir == NULL) {     // 若为内核线程
       PF = PF_KERNEL;
       pool_size = kernel_pool.pool_size;

@@ -7,7 +7,6 @@
 #include "kernel/interrupt.h"
 #include "kernel/memory.h"
 #include "kernel/print.h"
-#include "shell/shell.h"
 #include "stdio.h"
 #include "string.h"
 #include "thread/thread.h"
@@ -43,7 +42,6 @@ int main(void) {
 //      }
 //   }
 /*************    写入应用程序结束   *************/
-   // cls_screen();
 
    struct disk* sda = &channels[0].devices[0];
    void *buf = sys_malloc(SECTOR_SIZE);
@@ -70,7 +68,11 @@ int main(void) {
    char f_path[128];
    int f_offset, f_size;
    const char *ptr = (const char *)idx_content, *end = ptr + index_file_size;
-   while ((ptr = parse_index_line(ptr, end, f_path, &f_offset, &f_size))) {
+   while (1) {
+      ptr = parse_index_line(ptr, end, f_path, &f_offset, &f_size);
+      if (!ptr) {
+         break;
+      }
       ASSERT(strlen(f_path) > 0);
       ASSERT(f_path[0] == '/');
       ASSERT(f_offset >= 0);
@@ -78,20 +80,23 @@ int main(void) {
       printk("%s %d %d\n", f_path, f_offset, f_size);
       sys_unlink(f_path);  // It doesn't matter if f_path not exist
       make_parent_dirs(f_path);
+
       int32_t fd = sys_open(f_path, O_CREAT | O_RDWR);
       if (fd < 0) {
          panic("failed to create/open system file");
       }
-      if (sys_write(fd, buf + f_offset, (uint32_t)f_size) < 0) {
+
+      int wr = sys_write(fd, buf + f_offset, (uint32_t)f_size);
+      if (wr < 0 || wr != f_size) {
+         printk("sys_write return %d\n", wr);
          panic("failed to write system file");
       }
       sys_close(fd);
    }
-
    sys_free(idx_content);
    sys_free(buf);
 
-   // cls_screen();
+   cls_screen();
    init_done = true;
 
    while (1) {
@@ -145,29 +150,23 @@ void fork_test(void) {
    exit(0);
 }
 
-/* init进程 */
-void init(void)
-{
+void init(void) {
    while (!init_done) {
       yield();
    }
    
    uint32_t ret_pid = fork();
-   if (ret_pid)
-   { // 父进程
+   if (ret_pid) {
       int status;
       int child_pid;
-      /* init在此处不停的回收僵尸进程 */
-      while (1)
-      {
+      while (1) {
          child_pid = wait(&status);
          printf("I`m init, My pid is 1, I recieve a child, It`s pid is %d, status is %d\n", child_pid, status);
       }
-   }
-   else
-   { // 子进程
-      my_shell();
-      // fork_test();
+   } else {
+      char *const argv[] = {"sh", NULL};
+      char *const envp[] = {"PATH=/usr/bin:/bin", NULL};
+      execve("/usr/bin/sh", argv, envp);
    }
    panic("init: should not be here");
 }

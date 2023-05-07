@@ -1,7 +1,7 @@
 #ifndef __LIB_STDIO_H
 #define __LIB_STDIO_H
 #include "stdint.h"
-#include "stdint.h"
+
 typedef char* va_list;
 int printf(const char* str, ...);
 int vsprintf(char* str, const char* format, va_list ap);
