@@ -21,4 +21,3 @@ _start:
    push  eax
    call  exit
    ;exit不会返回
-
