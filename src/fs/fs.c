@@ -318,7 +318,7 @@ int32_t sys_open(const char* pathname, uint8_t flags) {
    bool found = inode_no != -1 ? true : false;
 
    if (searched_record.file_type == FT_DIRECTORY) {
-      printk("can`t open a direcotry with open(), use opendir() to instead\n");
+      printk("can`t open a direcotry with open(), use opendir() instead\n");
       dir_close(searched_record.parent_dir);
       return -1;
    }
@@ -444,7 +444,7 @@ int32_t sys_unlink(const char* pathname) {
       return -1;
    }
    if (searched_record.file_type == FT_DIRECTORY) {
-      printk("can`t delete a direcotry with unlink(), use rmdir() to instead\n");
+      printk("can`t delete a direcotry with unlink(), use rmdir() instead\n");
       dir_close(searched_record.parent_dir);
       return -1;
    }

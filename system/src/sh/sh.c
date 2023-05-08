@@ -85,45 +85,22 @@ static int32_t cmd_parse(char* cmd_str, char** argv, char token) {
 /* 执行命令 */
 static void cmd_execute(uint32_t argc, char **argv)
 {
-   if (!strcmp("cd", argv[0]))
-   {
+   if (!strcmp("cd", argv[0])) {
       char final_path[MAX_PATH_LEN] = {0};
-      if (buildin_cd(argc, argv, final_path) != NULL)
-      {
+      if (buildin_cd(argc, argv, final_path) != NULL) {
          memset(cwd_cache, 0, MAX_PATH_LEN);
          strcpy(cwd_cache, final_path);
       }
-   }
-   else if (!strcmp("pwd", argv[0]))
-   {
-      buildin_pwd(argc, argv);
    }
    else if (!strcmp("ps", argv[0]))
    {
       buildin_ps(argc, argv);
    }
-   else if (!strcmp("clear", argv[0]))
-   {
-      buildin_clear(argc, argv);
-   }
-   else if (!strcmp("mkdir", argv[0]))
-   {
-      buildin_mkdir(argc, argv);
-   }
-   else if (!strcmp("rmdir", argv[0]))
-   {
-      buildin_rmdir(argc, argv);
-   }
-   else if (!strcmp("rm", argv[0]))
-   {
-      buildin_rm(argc, argv);
-   }
    else if (!strcmp("help", argv[0]))
    {
       buildin_help(argc, argv);
    }
-   else
-   { // 如果是外部命令,需要从磁盘上加载
+   else { // 如果是外部命令,需要从磁盘上加载
       int32_t pid = fork();
       if (pid) {
          set_fg_pid(pid);
