@@ -97,7 +97,7 @@ static void setup_frame(struct intr_stack *stk, int signum, sighandler_t handler
     stk->eip = (void(*)(void)) handler;
 }
 
-void sys_sigreturn(void) {
+uint32_t sys_sigreturn(void) {
     uint32_t ebp;
     asm ("mov %%ebp, %0" : "=g" (ebp));
 
@@ -108,6 +108,7 @@ void sys_sigreturn(void) {
     // restore interrupt stack
     void *backup = (void*) stk->eip;
     memcpy(stk, backup, sizeof(struct intr_stack));
+    return stk->eax;
 }
 
 static void handle_signal_default(int signum) {
