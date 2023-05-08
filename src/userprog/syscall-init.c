@@ -59,7 +59,6 @@ void syscall_init(void) {
    syscall_table[SYS_WAIT]	    = sys_wait;
    syscall_table[SYS_PIPE]	    = sys_pipe;
    syscall_table[SYS_FD_REDIRECT]   = sys_fd_redirect;
-   syscall_table[SYS_HELP]	    = sys_help;
    syscall_table[SYS_MSLEEP]   = sys_msleep;
    syscall_table[SYS_YIELD]    = sys_yield;
    syscall_table[SYS_SIGNAL]   = sys_signal;

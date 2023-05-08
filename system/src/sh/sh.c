@@ -11,34 +11,27 @@
 #define MAX_ARG_NR 16       // 加上命令名外,最多支持15个参数
 #define STDIN_FILENO 0
 
-/* 存储输入的命令 */
-static char cmd_line[MAX_PATH_LEN] = {0};
-extern char final_path[];
-
-/* 用来记录当前目录,是当前目录的缓存,每次执行cd命令时会更新此内容 */
-char cwd_cache[MAX_PATH_LEN] = {0};
-
-extern char **environ;
+#define CTRL_L ('L' ^ 0x40)
 
 static void execute_piped_commands(char *command_line);
 
-static void print_prompt(void) {
+static void print_prompt(const char *cwd_cache) {
    printf("[rabbit@localhost %s]$ ", cwd_cache);
 }
 
 static int readline(char *buf, uint32_t count) {
-    assert(buf != NULL && count > 0);
-    int r;
-    if ((r = read(STDIN_FILENO, buf, count-1)) >= 0) {
-        if (r > 0 && buf[r-1] == '\n') {
-            --r;
-        }
-        buf[r] = 0;
-    } else {
-        // TODO: handle read error
-        buf[0] = 0;
-    }
-    return r;
+   assert(buf != NULL && count > 0);
+   int r;
+   if ((r = read(STDIN_FILENO, buf, count-1)) >= 0) {
+      if (r > 0 && buf[r-1] == '\n') {
+         --r;
+      }
+      buf[r] = 0;
+   } else {
+      printf("[shell] failed to read line, read() return %d\n", r);
+      buf[0] = 0;
+   }
+   return r;
 }
 
 /* 分析字符串cmd_str中以token为分隔符的单词,将各单词的指针存入argv数组 */
@@ -55,52 +48,45 @@ static int32_t cmd_parse(char* cmd_str, char** argv, char token) {
    while(*next) {
       /* 去除命令字或参数之间的空格 */
       while(*next == token) {
-     next++;
+         next++;
       }
       /* 处理最后一个参数后接空格的情况,如"ls dir2 " */
       if (*next == 0) {
-     break;
+         break;
       }
       argv[argc] = next;
 
      /* 内层循环处理命令行中的每个命令字及参数 */
       while (*next && *next != token) {      // 在字符串结束前找单词分隔符
-     next++;
+         next++;
       }
 
       /* 如果未结束(是token字符),使tocken变成0 */
       if (*next) {
-     *next++ = 0;    // 将token字符替换为字符串结束符0,做为一个单词的结束,并将字符指针next指向下一个字符
+         *next++ = 0;    // 将token字符替换为字符串结束符0,做为一个单词的结束,并将字符指针next指向下一个字符
       }
 
       /* 避免argv数组访问越界,参数过多则返回0 */
       if (argc > MAX_ARG_NR) {
-     return -1;
+         return -1;
       }
       argc++;
    }
    return argc;
 }
 
-/* 执行命令 */
-static void cmd_execute(uint32_t argc, char **argv)
-{
+static void cmd_execute(uint32_t argc, char **argv, char *cwd_cache) {
    if (!strcmp("cd", argv[0])) {
       char final_path[MAX_PATH_LEN] = {0};
       if (buildin_cd(argc, argv, final_path) != NULL) {
          memset(cwd_cache, 0, MAX_PATH_LEN);
          strcpy(cwd_cache, final_path);
       }
-   }
-   else if (!strcmp("ps", argv[0]))
-   {
+   } else if (!strcmp("ps", argv[0])) {
       buildin_ps(argc, argv);
-   }
-   else if (!strcmp("help", argv[0]))
-   {
+   } else if (!strcmp("help", argv[0])) {
       buildin_help(argc, argv);
-   }
-   else { // 如果是外部命令,需要从磁盘上加载
+   } else { // 如果是外部命令,需要从磁盘上加载
       int32_t pid = fork();
       if (pid) {
          set_fg_pid(pid);
@@ -124,21 +110,32 @@ static void cmd_execute(uint32_t argc, char **argv)
 }
 
 int main(void) {
-   set_fg_pid(getpid());
-
    char* argv[MAX_ARG_NR] = {NULL};
    int32_t argc = -1;
+   char *cmd_line = (char *)malloc(MAX_PATH_LEN + 1);
+   char *cwd_cache = (char *)malloc(MAX_PATH_LEN + 1);
 
+   set_fg_pid(getpid());
+
+   memset(cmd_line, 0, MAX_PATH_LEN + 1);
+   memset(cwd_cache, 0, MAX_PATH_LEN + 1);
    cwd_cache[0] = '/';
+
    while (1) {
-      print_prompt();
-      memset(final_path, 0, MAX_PATH_LEN);
+      print_prompt(cwd_cache);
+      // memset(final_path, 0, MAX_PATH_LEN);
       memset(cmd_line, 0, MAX_PATH_LEN);
+
       int r;
       if ((r = readline(cmd_line, MAX_PATH_LEN)) < 0) {
          printf("[shell] failed to readline, return value is %d\n", r);
          break;
       }
+      if (r == 1 && cmd_line[0] == CTRL_L) {
+         clear();
+         continue;
+      }
+
       if (cmd_line[0] == 0) { // 若只键入了一个回车
          continue;
       }
@@ -154,9 +151,11 @@ int main(void) {
          printf("num of arguments exceed %d\n", MAX_ARG_NR);
          continue;
          }
-         cmd_execute(argc, argv);
+         cmd_execute(argc, argv, cwd_cache);
       }
    }
+   free(cmd_line);
+   free(cwd_cache);
    panic("my_shell: should not be here");
    return 0;
 }

@@ -33,7 +33,6 @@ enum SYSCALL_NR {
    SYS_WAIT,
    SYS_PIPE,
    SYS_FD_REDIRECT,
-   SYS_HELP,
    SYS_MSLEEP,
    SYS_YIELD,
    SYS_SIGNAL,
@@ -69,7 +68,6 @@ void exit(int32_t status);
 pid_t wait(int32_t* status);
 int32_t pipe(int32_t pipefd[2]);
 void fd_redirect(uint32_t old_local_fd, uint32_t new_local_fd);
-void help(void);
 void msleep(uint32_t millis);
 void yield(void);
 sighandler_t signal(int32_t signum, sighandler_t handler);

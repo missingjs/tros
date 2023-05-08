@@ -154,7 +154,7 @@ void init(void) {
    while (!init_done) {
       yield();
    }
-   
+
    uint32_t ret_pid = fork();
    if (ret_pid) {
       int status;

@@ -12,6 +12,7 @@
 #define CTRL_C ('C' ^ 0x40)
 #define CTRL_D ('D' ^ 0x40)
 #define CTRL_U ('U' ^ 0x40)
+#define CTRL_L ('L' ^ 0x40)
 
 struct n_tty_data {
     struct ioqueue buffer;
@@ -99,7 +100,7 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
 
         echo((uint8_t)ch);
 
-        if (tdata->line_size == N_TTY_LINE_BUF_SIZE || ch == '\n' || ch == CTRL_D || ch == CTRL_C) {
+        if (tdata->line_size == N_TTY_LINE_BUF_SIZE || ch == '\n' || ch == CTRL_C || ch == CTRL_D || ch == CTRL_L) {
             // copy line content to buffer
             int s = ioq_write_some(&tdata->buffer, (const char *)tdata->line_buf, tdata->line_size);
             int len = tdata->line_size - s;

@@ -8,10 +8,6 @@
 #include "filesys.h"
 #include "stdlib.h"
 
-extern char final_path[];
-
-#define MAX_FILE_NAME_LEN 16
-
 /* cd命令的内建函数 */
 char* buildin_cd(uint32_t argc, char** argv, char *final_path) {
    if (argc > 2) {
@@ -45,5 +41,17 @@ void buildin_ps(uint32_t argc, char** argv UNUSED) {
 
 /* 显示内建命令列表 */
 void buildin_help(uint32_t argc UNUSED, char** argv UNUSED) {
-   help();
+   printf("\
+ buildin commands:\n\
+       ls: show directory or file information\n\
+       cd: change current work directory\n\
+       mkdir: create a directory\n\
+       rmdir: remove a empty directory\n\
+       rm: remove a regular file\n\
+       pwd: show current work directory\n\
+       ps: show process information\n\
+       clear: clear screen\n\
+ shortcut key:\n\
+       ctrl+l: clear screen\n\
+       ctrl+u: clear input\n\n");
 }

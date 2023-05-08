@@ -5,6 +5,7 @@
 
 int main(int argc, char *argv[]) {
     int32_t ret = -1;
+    char final_path[512] = {0};
     if (argc != 2) {
         printf("rm: only support 1 argument!\n");
     } else {

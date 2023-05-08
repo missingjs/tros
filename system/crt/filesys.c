@@ -9,7 +9,7 @@
 
 #include "stdlib.h"
 
-char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
+// char final_path[MAX_PATH_LEN] = {0};      // 用于洗路径时的缓冲
 
 #define MAX_FILE_NAME_LEN 16
 
