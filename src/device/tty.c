@@ -82,6 +82,7 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
             case CTRL_U:
                 clear_line_input(tdata);
                 continue;
+
             case CTRL_C:
                 sys_kill(tty->fg_pid, SIGINT);
                 __attribute__ ((fallthrough));
@@ -89,6 +90,7 @@ static void n_tty_receive_buf(struct tty_struct *tty, const unsigned char *buf, 
                 tdata->line_buf[tdata->line_size] = 0xff;
                 ++tdata->line_size;
                 break;
+
             case '\r':
                 ch = '\n';
                 __attribute__ ((fallthrough));

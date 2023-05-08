@@ -205,7 +205,7 @@ int32_t kill(pid_t pid, int32_t signum) {
 }
 
 void sigreturn() {        
-   _syscall0(SYS_SIGRETURN);    
+   _syscall0(SYS_SIGRETURN);
 }
 
 void set_fg_pid(pid_t pid) {

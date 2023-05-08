@@ -1,6 +1,8 @@
 #ifndef __KERNEL_SIGNAL_H
 #define __KERNEL_SIGNAL_H
 
+#include "stdint.h"
+
 #define MAX_SIGNALS 16
 
 enum signals {

@@ -1,3 +1,4 @@
+#include "kernel/signal.h"
 #include "stdlib.h"
 #include "stdint.h"
 #include "stdio.h"
@@ -17,6 +18,10 @@ static void execute_piped_commands(char *command_line);
 
 static void print_prompt(const char *cwd_cache) {
    printf("[rabbit@localhost %s]$ ", cwd_cache);
+}
+
+static void sigint_handler(int signum __attribute__((unused))) {
+
 }
 
 static int readline(char *buf, uint32_t count) {
@@ -115,6 +120,7 @@ int main(void) {
    char *cmd_line = (char *)malloc(MAX_PATH_LEN + 1);
    char *cwd_cache = (char *)malloc(MAX_PATH_LEN + 1);
 
+   signal(SIGINT, sigint_handler);
    set_fg_pid(getpid());
 
    memset(cmd_line, 0, MAX_PATH_LEN + 1);
