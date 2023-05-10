@@ -1,7 +1,7 @@
 # tros: An OS training project
 
 ## What's this
-The code originated from <https://github.com/yifengyou/os-elephant>, plus some intresting features.
+The code originated from <https://github.com/yifengyou/os-elephant>, plus some interesting features.
 
 ### New features
 * dynamic kernel entry point
@@ -16,12 +16,11 @@ The code originated from <https://github.com/yifengyou/os-elephant>, plus some i
     * setjmp
 * a simple tty layer
     * support CTRL-C, CTRL-D, CTRL-U
-
-Some utility user program also included, like cat, sort, sh, seq, etc.
+* some utility user program, like `cat`, `sort`, `sh`, `seq`, etc.
 
 ### Bug fixes
 * TLB entry flush
-* clear BSS segment
+* clear BSS segment when kernel loading
 * syscall execve
     * release all memory allocated before load new image of executable
     * load segment defined in ELF header by memory size, not file size
