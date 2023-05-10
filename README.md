@@ -25,6 +25,7 @@ Some interesting features have been added:
 * TLB entry flush
 * clear BSS segment when kernel loading
 * syscall execve
+    * copy `argv` and `envp` from user space to kernel space
     * release all memory allocated before load new image of executable
     * load segment defined in ELF header by memory size, not file size
     * clear BSS segment after loaded into memory
