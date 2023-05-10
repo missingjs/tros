@@ -1,9 +1,12 @@
-# tros: An OS training project
+# tros: An Unix-like OS training project
 
 ## What's this
-The code originated from <https://github.com/yifengyou/os-elephant>, plus some interesting features.
+Tros is an Unix-like OS training project. 
+* The idea was inspired by an amazing book (written in Chinese) <https://book.douban.com/subject/26745156/>
+* And the code was originated from <https://github.com/yifengyou/os-elephant>
 
 ### New features
+Some interesting features have been added:
 * dynamic kernel entry point
 * condition variable
 * make reading/writing of pipe as blocking operation
