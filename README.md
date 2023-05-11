@@ -21,7 +21,7 @@ Some interesting features have been added:
     * support CTRL-C, CTRL-D, CTRL-U
 * some utility user program, like `cat`, `sort`, `sh`, `seq`, etc.
 
-### Bug fixes
+### Bug fix
 * TLB entry flush
 * clear BSS segment when kernel loading
 * syscall execve
